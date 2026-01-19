@@ -16,11 +16,13 @@ A modern, full-featured birthday invitation platform with RSVP tracking and mult
 
 ## 🚀 Quick Setup Guide
 
-### Step 1: Fork This Repository
+### Step 1: Fork or Clone This Repository
 
 1. Click the **"Fork"** button at the top right
-2. **Make your fork PRIVATE** to keep Firebase credentials secure
+2. Your fork can be **PUBLIC** - Firebase API keys are safe to expose (see Security FAQ below)
 3. Clone to your computer or edit directly on GitHub
+
+> **Note**: GitHub Pages requires a public repository on the free tier. Don't worry - your Firebase API keys are designed to be public. Your data is protected by Firestore security rules and domain restrictions, not by hiding the API key.
 
 ### Step 2: Create Firebase Project (Free)
 
@@ -135,16 +137,93 @@ Click **"Publish"**
 
 ### Step 9: Deploy to GitHub Pages
 
-1. Go to your GitHub repository **Settings**
-2. Click **Pages** (left sidebar)
-3. Under **Source**, select **"Deploy from a branch"**
-4. Choose **main** branch and **/ (root)**
-5. Click **"Save"**
-6. Wait 2-3 minutes for deployment
-7. Your site URL: `https://YOUR-USERNAME.github.io/birthday_invitation/`
+#### Option A: Using GitHub Web Interface (Recommended)
 
-**Important:** Add your GitHub Pages URL to Firebase authorized domains:
-- Firebase Console → Authentication → Settings → Authorized domains → Add domain
+1. **Push your code to GitHub** (if you haven't already):
+   ```bash
+   git add .
+   git commit -m "Initial setup with Firebase configuration"
+   git push origin main
+   ```
+
+2. **Enable GitHub Pages**:
+   - Go to your repository on GitHub
+   - Click **Settings** (top navigation)
+   - Click **Pages** in the left sidebar
+   - Under **Source**, select **"Deploy from a branch"**
+   - Choose **main** branch and **/ (root)** folder
+   - Click **"Save"**
+
+3. **Wait for deployment** (2-3 minutes)
+   - GitHub will show a message: "Your site is ready to be published at..."
+   - Refresh the page to see the live URL
+   - Your site will be available at: `https://YOUR-USERNAME.github.io/REPOSITORY-NAME/`
+
+4. **Add GitHub Pages domain to Firebase** (IMPORTANT - This is what secures your app):
+   - Copy your GitHub Pages URL (without https://)
+   - Example: `your-username.github.io`
+   - Go to Firebase Console → Authentication → Settings → Authorized domains
+   - Click **"Add domain"**
+   - Paste: `your-username.github.io`
+   - Click **"Add"**
+   
+   > ⚠️ **SecurDeploy to Netlify/Vercel (Private Repos Supported)
+
+If you want to keep your repository private, use these free alternatives:
+
+**Netlify**:
+1. Go to [Netlify](https://www.netlify.com/)
+2. Sign up/Login with GitHub
+3. Click "Add new site" → "Import an existing project"
+4. Choose your private GitHub repository
+5. Deploy settings: Leave defaults (Build command: blank, Publish directory: /)
+6. Click "Deploy site"
+7. Your site URL: `random-name.netlify.app` (can customize)
+8. Add your Netlify domain to Firebase authorized domains
+
+**Vercel**:
+1. Go to [Vercel](https://vercel.com/)
+2. Sign up/Login with GitHub
+3. Click "Add New" → "Project"
+4. Import your private repository
+5. Click "Deploy"
+6. Your site URL: `project-name.vercel.app`
+7. Add your Vercel domain to Firebase authorized domains
+
+#### Option C: ity Note**: Only domains in this list can use your Firebase project. This prevents others from using your API key on their own websites.
+
+#### Option B: Using Custom Domain (Optional)
+
+If you want to use your own domain (e.g., `invitations.yourdomain.com`):
+
+1. **In GitHub**:
+   - Go to Settings → Pages
+   - Under "Custom domain", enter your domain
+   - Click "Save"
+
+2. **In your DNS provider**:
+   - Add a CNAME record pointing to `your-username.github.io`
+   - Or add A records for GitHub's IP addresses
+   - [Full DNS setup guide](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site)
+
+3. **In Firebase**:
+   - Add your custom domain to Firebase authorized domains
+
+#### Troubleshooting Deployment
+
+**404 Error after deployment?**
+- Wait a few more minutes, deployment can take up to 10 minutes
+- Make sure `index.html` is in the root directory
+- Check that branch name is correct in Pages settings
+
+**Changes not showing?**
+- Clear browser cache: Ctrl+Shift+R (Windows/Linux) or Cmd+Shift+R (Mac)
+- Check that you pushed your latest changes to GitHub
+- Verify the correct branch is selected in Pages settings
+
+**Firebase auth error on live site?**
+- Make sure you added your GitHub Pages domain to Firebase authorized domains
+- Check that Firebase config is correct in both `app.js` and `rsvp.js`
 
 ### Step 10: Create Your First Event!
 
@@ -196,10 +275,37 @@ birthday_invitation/
 
 - ✅ XSS protection with HTML escaping
 - ✅ Input validation (client + server)
-- ✅ Firestore security rules
+- ✅ Firestore security rules enforce data access
 - ✅ Authentication required for admin actions
+- ✅ Domain restrictions in Firebase
 - ✅ Event listeners (no inline onclick)
-- ✅ Private fork recommended for credentials
+
+### 🔐 Security FAQ
+
+**Q: Is it safe to have my Firebase API keys in a public repository?**
+
+**A: Yes!** Firebase API keys are **not secret keys**. They're designed to be included in client-side code and apps. Here's what actually keeps your data secure:
+
+1. **Firestore Security Rules**: These server-side rules control who can read/write data
+2. **Domain Restrictions**: Firebase only accepts requests from authorized domains you specify
+3. **Authentication**: Only authenticated users can create/manage events
+4. **User-specific Data**: Rules ensure users can only access their own events
+
+**Q: Can someone steal my database if they see my API key?**
+
+**A: No.** The API key just identifies your Firebase project. Without proper authentication and passing security rules, they cannot access your data. It's like knowing someone's address but not being able to enter their house.
+
+**Q: What if I want to keep my repository private anyway?**
+
+**A: You have options:**
+
+1. **GitHub Pro** ($4/month): Includes private repos with GitHub Pages
+2. **Netlify/Vercel**: Free hosting that works with private GitHub repos
+3. **Environment Variables**: Use a build tool to inject API keys (more complex)
+
+**Q: Should I rotate my Firebase API keys?**
+
+**A: Not necessary** unless you suspect your Firebase Admin credentials were compromised. Client API keys are meant to be public. However, do keep your Firebase Console access secure!
 
 ## 💡 Tips
 
