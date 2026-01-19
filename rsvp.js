@@ -1,13 +1,15 @@
 // Firebase Configuration
 // IMPORTANT: Replace this with your own Firebase configuration
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
-  };
+  apiKey: "AIzaSyBbSpb1G9KVo6CxyWrjzYdH4u5OTahNpVE",
+    authDomain: "birthday-invitation-4920b.firebaseapp.com",
+    projectId: "birthday-invitation-4920b",
+    storageBucket: "birthday-invitation-4920b.firebasestorage.app",
+    messagingSenderId: "455710154033",
+    appId: "1:455710154033:web:92fee81509f7e916386410"
+ 
+};
+
 // Initialize Firebase
 let app, db;
 
@@ -237,8 +239,8 @@ function updateGuestNameInputs(numGuests) {
         const formGroup = document.createElement('div');
         formGroup.className = 'form-group';
         formGroup.innerHTML = `
-            <label for="guest-name-${i}">Guest ${i} Name</label>
-            <input type="text" id="guest-name-${i}" placeholder="Full name" required>
+            <label for="guest-name-${i}">Guest ${i} Name (optional)</label>
+            <input type="text" id="guest-name-${i}" placeholder="Full name">
         `;
         guestNamesContainer.appendChild(formGroup);
     }
@@ -274,23 +276,19 @@ rsvpForm.addEventListener('submit', async (e) => {
             return;
         }
 
-        // Collect and validate guest names
+        // Collect guest names (optional)
         for (let i = 1; i <= numGuests; i++) {
             const guestNameInput = document.getElementById(`guest-name-${i}`);
             const guestName = guestNameInput ? guestNameInput.value.trim() : '';
             
-            // Validate guest name length
-            if (!guestName || guestName.length < 1 || guestName.length > 100) {
-                alert(`Guest ${i} name must be between 1 and 100 characters`);
-                return;
+            // Guest names are optional, but if provided, validate length
+            if (guestName) {
+                if (guestName.length > 100) {
+                    alert(`Guest ${i} name must be less than 100 characters`);
+                    return;
+                }
+                guestNames.push(guestName);
             }
-            
-            guestNames.push(guestName);
-        }
-
-        if (guestNames.length !== numGuests) {
-            alert('Please enter all guest names');
-            return;
         }
 
         additionalNotes = document.getElementById('additional-notes').value.trim();
