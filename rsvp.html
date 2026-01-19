@@ -45,10 +45,6 @@
                                 <span class="icon">📅</span>
                                 <span id="event-date">Date to be announced</span>
                             </div>
-                            <div class="event-detail-item">
-                                <span class="icon">👥</span>
-                                <span id="recipient-name">Special Guest</span>
-                            </div>
                         </div>
                         <p id="event-message" class="event-message"></p>
                     </div>
@@ -84,6 +80,12 @@
 
                             <div id="guest-details-section" style="display: none;">
                                 <div class="form-group">
+                                    <label for="family-name">Family/Group Name</label>
+                                    <input type="text" id="family-name" placeholder="The Smith Family" maxlength="100" required>
+                                    <small>How should we identify your group?</small>
+                                </div>
+                                
+                                <div class="form-group">
                                     <label for="num-guests">Number of Guests</label>
                                     <select id="num-guests" required>
                                         <option value="">Select number of guests</option>
@@ -94,8 +96,8 @@
                                 <div id="guest-names-container"></div>
 
                                 <div class="form-group">
-                                    <label for="additional-notes">Special Notes (optional)</label>
-                                    <textarea id="additional-notes" rows="3" maxlength="500" placeholder="Dietary restrictions, song requests, etc."></textarea>
+                                    <label for="additional-notes">Message to the organizers (optional)</label>
+                                    <textarea id="additional-notes" rows="3" maxlength="500"></textarea>
                                     <small>Maximum 500 characters</small>
                                 </div>
                             </div>

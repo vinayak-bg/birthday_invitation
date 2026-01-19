@@ -72,9 +72,18 @@
                 <div class="dashboard">
                     <h2>Admin Dashboard</h2>
                     
-                    <!-- Event Setup -->
+                    <!-- My Events -->
                     <div class="card">
-                        <h3>Event Configuration</h3>
+                        <h3>My Events</h3>
+                        <div id="events-list-container">
+                            <p class="loading-text">Loading events...</p>
+                        </div>
+                        <button id="create-new-event-btn" class="btn btn-secondary" style="margin-top: 1rem;">+ Create New Event</button>
+                    </div>
+
+                    <!-- Event Setup -->
+                    <div class="card" id="event-form-card" style="display: none;">
+                        <h3 id="event-form-title">Create New Event</h3>
                         <form id="event-form">
                             <div class="form-group">
                                 <label for="event-name">Event Name</label>
@@ -93,21 +102,20 @@
                                 <input type="url" id="invitation-image" placeholder="https://example.com/invitation.jpg">
                                 <small>Optional: URL to your invitation image</small>
                             </div>
-                            <button type="submit" class="btn btn-primary">Save Event Details</button>
+                            <button type="submit" class="btn btn-primary">Save Event</button>
+                            <button type="button" id="cancel-event-btn" class="btn btn-secondary">Cancel</button>
                         </form>
                     </div>
 
                     <!-- Create Invitation Link -->
-                    <div class="card">
+                    <div class="card" id="link-form-card" style="display: none;">
                         <h3>Create Invitation Link</h3>
+                        <p id="selected-event-name" class="selected-event"></p>
                         <form id="link-form">
-                            <div class="form-group">
-                                <label for="recipient-name">Recipient Name/Group</label>
-                                <input type="text" id="recipient-name" placeholder="Smith Family" maxlength="100" required>
-                            </div>
                             <div class="form-group">
                                 <label for="max-guests">Maximum Guests Allowed</label>
                                 <input type="number" id="max-guests" min="1" max="50" value="2" required>
+                                <small>Create multiple links with different guest limits for the same event</small>
                             </div>
                             <button type="submit" class="btn btn-primary">Generate Link</button>
                         </form>
@@ -144,11 +152,11 @@
                             <table id="rsvp-table">
                                 <thead>
                                     <tr>
-                                        <th>Recipient</th>
-                                        <th>Status</th>
-                                        <th>Guests</th>
-                                        <th>Guest Names</th>
-                                        <th>Max Allowed</th>
+                                        <th>Link ID</th>
+                                        <th>Max Guests</th>
+                                        <th>RSVPs</th>
+                                        <th>Total Confirmed</th>
+                                        <th>Responses</th>
                                         <th>Link</th>
                                         <th>Actions</th>
                                     </tr>

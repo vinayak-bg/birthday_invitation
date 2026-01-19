@@ -7,7 +7,7 @@ const firebaseConfig = {
     storageBucket: "YOUR_PROJECT_ID.appspot.com",
     messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
     appId: "YOUR_APP_ID"
-};
+  };
 // Initialize Firebase
 let app, db;
 
@@ -78,7 +78,6 @@ const successSection = document.getElementById('success-section');
 // Event Details
 const eventNameEl = document.getElementById('event-name');
 const eventDateEl = document.getElementById('event-date');
-const recipientNameEl = document.getElementById('recipient-name');
 const eventMessageEl = document.getElementById('event-message');
 const invitationImageContainer = document.getElementById('invitation-image-container');
 const invitationImage = document.getElementById('invitation-image');
@@ -88,6 +87,7 @@ const rsvpForm = document.getElementById('rsvp-form');
 const rsvpStatusSection = document.getElementById('rsvp-status-section');
 const rsvpFormSection = document.getElementById('rsvp-form-section');
 const guestDetailsSection = document.getElementById('guest-details-section');
+const familyNameInput = document.getElementById('family-name');
 const numGuestsSelect = document.getElementById('num-guests');
 const maxGuestsNote = document.getElementById('max-guests-note');
 const guestNamesContainer = document.getElementById('guest-names-container');
@@ -124,9 +124,15 @@ async function loadInvitation() {
         invitationData = invitationDoc.data();
         console.log('Invitation data loaded:', invitationData);
         
-        // Load event data
-        console.log('Loading event data for userId:', invitationData.userId);
-        const eventDocRef = window.firebaseModules.doc(db, 'events', invitationData.userId);
+        // Load event data using eventId from invitation
+        if (!invitationData.eventId) {
+            console.error('No eventId in invitation data');
+            showInvalid();
+            return;
+        }
+        
+        console.log('Loading event data for eventId:', invitationData.eventId);
+        const eventDocRef = window.firebaseModules.doc(db, 'events', invitationData.eventId);
         const eventDoc = await window.firebaseModules.getDoc(eventDocRef);
         
         if (eventDoc.exists) {
@@ -134,6 +140,8 @@ async function loadInvitation() {
             console.log('Event data loaded:', eventData);
         } else {
             console.log('No event data found');
+            showInvalid();
+            return;
         }
 
         // Display invitation
@@ -157,7 +165,10 @@ function displayInvitation() {
         eventNameEl.textContent = eventData.name || 'Birthday Celebration';
         
         if (eventData.date) {
-            const date = new Date(eventData.date);
+            // Parse date as local date to avoid timezone issues
+            // eventData.date is in format "YYYY-MM-DD"
+            const [year, month, day] = eventData.date.split('-');
+            const date = new Date(year, month - 1, day); // month is 0-indexed
             eventDateEl.textContent = date.toLocaleDateString('en-US', { 
                 weekday: 'long', 
                 year: 'numeric', 
@@ -167,7 +178,9 @@ function displayInvitation() {
         }
         
         if (eventData.message) {
-            eventMessageEl.textContent = eventData.message;
+            // Escape HTML but preserve newlines by converting to <br>
+            const escapedMessage = escapeHtml(eventData.message).replace(/\n/g, '<br>');
+            eventMessageEl.innerHTML = escapedMessage;
         }
         
         if (eventData.imageUrl) {
@@ -176,14 +189,8 @@ function displayInvitation() {
         }
     }
 
-    recipientNameEl.textContent = invitationData.recipientName;
-
-    // Check if already RSVP'd
-    if (invitationData.rsvpSubmitted) {
-        showRsvpStatus();
-    } else {
-        setupRsvpForm();
-    }
+    // Always show RSVP form (multiple people can RSVP with same link)
+    setupRsvpForm();
 }
 
 function showRsvpStatus() {
@@ -266,10 +273,18 @@ rsvpForm.addEventListener('submit', async (e) => {
 
     const attending = document.querySelector('input[name="attending"]:checked').value;
     
+    let familyName = '';
     let guestNames = [];
     let additionalNotes = '';
 
     if (attending === 'yes') {
+        // Validate family name
+        familyName = familyNameInput.value.trim();
+        if (!familyName || familyName.length < 1 || familyName.length > 100) {
+            alert('Family/Group name must be between 1 and 100 characters');
+            return;
+        }
+        
         const numGuests = parseInt(numGuestsSelect.value);
         
         if (!numGuests) {
@@ -305,15 +320,29 @@ rsvpForm.addEventListener('submit', async (e) => {
         }
     }
 
-    // Update invitation in database
+    // Create RSVP entry
+    const rsvpEntry = {
+        familyName: familyName || 'Declined',
+        attending: attending === 'yes',
+        guestNames: guestNames,
+        additionalNotes: additionalNotes,
+        rsvpDate: new Date().toISOString()
+    };
+
+    // Append to rsvps array in the invitation document
     try {
         const invitationDocRef = window.firebaseModules.doc(db, 'invitations', invitationId);
+        
+        // Get current rsvps array
+        const invitationSnap = await window.firebaseModules.getDoc(invitationDocRef);
+        const currentRsvps = invitationSnap.data().rsvps || [];
+        
+        // Add new RSVP
+        currentRsvps.push(rsvpEntry);
+        
         await window.firebaseModules.updateDoc(invitationDocRef, {
-            rsvpSubmitted: true,
-            guestNames: guestNames,
-            additionalNotes: additionalNotes,
-            status: guestNames.length > 0 ? 'confirmed' : 'declined',
-            rsvpDate: new Date().toISOString()
+            rsvps: currentRsvps,
+            rsvpSubmitted: true // Keep for backwards compatibility
         });
 
         // Show success message
@@ -321,7 +350,7 @@ rsvpForm.addEventListener('submit', async (e) => {
         successSection.style.display = 'block';
         
         if (guestNames.length > 0) {
-            successMessage.textContent = `We're excited to celebrate with you, ${guestNames.join(' and ')}!`;
+            successMessage.textContent = `We're excited to celebrate with ${familyName}!`;
         } else {
             successMessage.textContent = 'Thank you for letting us know. We\'ll miss you!';
         }

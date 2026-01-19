@@ -1,357 +1,242 @@
-# 🎂 Birthday Invitation Website
+# 🎂 Birthday Invitation System
 
-A beautiful, feature-rich birthday invitation website with RSVP tracking. Perfect for hosting on GitHub Pages!
+A modern, full-featured birthday invitation platform with RSVP tracking and multi-event support. Perfect for hosting on GitHub Pages!
 
 ## ✨ Features
 
+- 🎉 **Multiple Events**: Create and manage unlimited birthday events
 - 📧 **Custom Invitations**: Add personal messages and invitation images
 - 🔗 **Shareable Links**: Generate unique RSVP links with customizable guest limits
-- 📊 **RSVP Tracking**: Monitor who's attending in real-time
-- 👥 **Guest Management**: Track guest names and special notes
+- 👨‍👩‍👧‍👦 **Family-Friendly**: Multiple families can RSVP using the same link
+- 📊 **Real-Time Tracking**: Monitor RSVPs and guest counts live
 - 📱 **Responsive Design**: Works beautifully on all devices
-- 🔒 **Secure Admin Panel**: Protected dashboard for managing invitations
-- ☁️ **Cloud-Based**: Uses Firebase for reliable, real-time data storage
+- 🔒 **Secure Admin Panel**: Protected dashboard for managing events
+- ☁️ **Cloud-Based**: Uses Firebase for reliable, scalable storage
+- 🚀 **Zero Cost**: Runs on GitHub Pages and Firebase free tier
 
-## 🚀 Complete Setup Guide (For Beginners)
+## 🚀 Quick Setup Guide
 
 ### Step 1: Fork This Repository
 
-1. Click the **"Fork"** button at the top right of this GitHub page
-2. **Make your fork PRIVATE** (recommended) - this keeps your Firebase credentials secure
-3. Clone your private fork to your computer or edit directly on GitHub
+1. Click the **"Fork"** button at the top right
+2. **Make your fork PRIVATE** to keep Firebase credentials secure
+3. Clone to your computer or edit directly on GitHub
 
-### Step 2: Create a Firebase Project (100% Free)
-
-Firebase provides the database and authentication for this website. The free tier is more than enough!
+### Step 2: Create Firebase Project (Free)
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Click **"Add project"** or **"Create a project"**
-3. Enter a project name (e.g., "my-birthday-invitation")
-4. **Disable Google Analytics** (not needed for this project)
-5. Click **"Create project"** and wait for it to initialize
+2. Click **"Create a project"**
+3. Enter project name (e.g., "birthday-invitations")
+4. Disable Google Analytics (optional)
+5. Click **"Create project"**
 
-### Step 3: Register Your Web App in Firebase
+### Step 3: Register Web App
 
-1. In your Firebase project dashboard, click the **web icon** `</>` (labeled "Web")
-2. Give it a nickname (e.g., "Birthday Website")
+1. In Firebase dashboard, click the **web icon** `</>`
+2. Give it a nickname
 3. Click **"Register app"**
-4. You'll see a `firebaseConfig` object - **COPY THIS!** You'll need it in the next step
+4. **Copy the firebaseConfig object**
 
-### Step 4: Update Firebase Configuration in Your Code
+### Step 4: Update Firebase Configuration
 
-You need to add your Firebase credentials to two files:
+Add your Firebase config to **both files**:
 
-#### File 1: `app.js` (lines 3-10)
-Replace this:
+#### `app.js` (lines 3-10)
+#### `rsvp.js` (lines 3-10)
+
 ```javascript
 const firebaseConfig = {
     apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
     appId: "YOUR_APP_ID"
 };
 ```
 
-With your actual Firebase config (paste what you copied in Step 3).
-
-#### File 2: `rsvp.js` (lines 3-10)
-Paste the **same Firebase configuration** here as well.
-
 ### Step 5: Enable Authentication
 
-1. In Firebase Console, go to **Build** → **Authentication**
-2. Click **"Get started"**
-3. Click on the **"Sign-in method"** tab
-4. Click on **"Email/Password"**
-5. **Enable** the first toggle (Email/Password)
-6. Click **"Save"**
+1. Firebase Console → **Authentication** → **Get started**
+2. Click **"Sign-in method"** tab
+3. Enable **"Email/Password"**
+4. Save
 
 ### Step 6: Create Firestore Database
 
-1. In Firebase Console, go to **Build** → **Firestore Database**
+1. Firebase Console → **Firestore Database**
 2. Click **"Create database"**
 3. Choose **"Start in production mode"**
-4. Select a location closest to you (doesn't matter much for small projects)
+4. Select your region
 5. Click **"Enable"**
 
 ### Step 7: Configure Firestore Security Rules
 
-1. Go to **Firestore Database** → **Rules** tab
-2. **Replace everything** with these rules:
+Go to **Firestore Database** → **Rules** tab and paste:
 
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function validStringLength(str, min, max) {
+      return str is string && str.size() >= min && str.size() <= max;
+    }
+    
     // Events collection
-    match /events/{userId} {
-      // Owner can read/write
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    match /events/{eventId} {
+      allow create: if isAuthenticated() 
+        && request.resource.data.userId == request.auth.uid
+        && validStringLength(request.resource.data.name, 1, 200);
       
-      // ANYONE can read event details (needed for guest invitation page)
+      allow read, update, delete: if isAuthenticated() 
+        && resource.data.userId == request.auth.uid;
+      
       allow read: if true;
     }
     
     // Invitations collection
     match /invitations/{invitationId} {
-      // Owner can create invitations (must be authenticated)
-      allow create: if request.auth != null;
+      allow create: if isAuthenticated() 
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.eventId is string
+        && request.resource.data.maxGuests >= 1 
+        && request.resource.data.maxGuests <= 50;
       
-      // Owner can read/write/delete their own invitations
-      allow read, write, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isAuthenticated() 
+        && resource.data.userId == request.auth.uid;
       
-      // ANYONE can read invitations and update for RSVP
-      allow read, update: if true;
+      allow read: if true;
+      
+      allow update: if 
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['rsvpSubmitted', 'rsvps'])
+        && request.resource.data.rsvps is list
+        && request.resource.data.rsvps.size() == resource.data.rsvps.size() + 1
+        && request.resource.data.rsvpSubmitted is bool;
     }
   }
 }
 ```
 
-3. Click **"Publish"**
+Click **"Publish"**
 
-### Step 8: Create Required Database Index
+### Step 8: Allow Localhost (Development)
 
-This is IMPORTANT! Without it, your admin dashboard won't load invitations.
+1. Firebase Console → **Authentication** → **Settings**
+2. Scroll to **"Authorized domains"**
+3. Click **"Add domain"**
+4. Add: `localhost`
+5. Save
 
-1. Go to **Firestore Database** → **Indexes** tab
-2. Click **"Create Index"**
-3. Set these values:
-   - **Collection ID**: `invitations`
-   - **Fields to index**:
-     - Field: `userId`, Order: **Ascending**
-     - Field: `createdAt`, Order: **Descending**
-   - **Query scope**: Collection
-4. Click **"Create Index"**
-5. **Wait 1-2 minutes** for the index to build (status will show "Building..." then "Enabled")
+### Step 9: Deploy to GitHub Pages
 
-> 💡 **Tip**: If you forget this step, Firebase will show an error with a direct link to create the index automatically!
+1. Go to your GitHub repository **Settings**
+2. Click **Pages** (left sidebar)
+3. Under **Source**, select **"Deploy from a branch"**
+4. Choose **main** branch and **/ (root)**
+5. Click **"Save"**
+6. Wait 2-3 minutes for deployment
+7. Your site URL: `https://YOUR-USERNAME.github.io/birthday_invitation/`
 
-### Step 9: Authorize Localhost (For Testing)
+**Important:** Add your GitHub Pages URL to Firebase authorized domains:
+- Firebase Console → Authentication → Settings → Authorized domains → Add domain
 
-1. In Firebase Console, go to **Authentication** → **Settings** tab
-2. Scroll down to **"Authorized domains"**
-3. Make sure **`localhost`** is in the list
-4. If not, click **"Add domain"** and add `localhost`
+### Step 10: Create Your First Event!
 
-### Step 10: Test Locally
-
-1. **Open `index.html`** in your web browser (double-click the file)
-2. **Alternative**: Use a local server:
-   ```bash
-   # If you have Python 3 installed
-   python3 -m http.server 8080
-   # Then open: http://localhost:8080
-   ```
-3. Click **"Admin Login"** and create an account (use any email/password)
-4. Fill in your **Event Configuration** (name, date, message, optional image)
-5. Click **"Save Event Details"**
-6. Create an **Invitation Link** (recipient name + max guests)
-7. **Copy the generated link** and open it in a new tab/window
-8. Submit an RSVP
-9. Go back to admin dashboard - you should see the RSVP!
-
-### Step 11: Authorize Your GitHub Pages Domain
-
-Before deploying, you need to tell Firebase about your GitHub Pages URL:
-
-1. In Firebase Console, go to **Authentication** → **Settings** → **Authorized domains**
-2. Click **"Add domain"**
-3. Add: `YOUR_USERNAME.github.io` (replace with your actual GitHub username)
-4. Click **"Add"**
-
-### Step 11: Authorize Your GitHub Pages Domain
-
-Before deploying, you need to tell Firebase about your GitHub Pages URL:
-
-1. In Firebase Console, go to **Authentication** → **Settings** → **Authorized domains**
-2. Click **"Add domain"**
-3. Add: `YOUR_USERNAME.github.io` (replace with your actual GitHub username)
-4. Click **"Add"**
-
-### Step 12: Deploy to GitHub Pages
-
-#### Option A: Using GitHub Web Interface (Easiest)
-
-1. Go to your repository on GitHub
-2. Click **Settings** → **Pages** (in the left sidebar)
-3. Under **"Source"**, select **"Deploy from a branch"**
-4. Select **main** (or **master**) branch
-5. Select **/ (root)** folder
-6. Click **"Save"**
-7. Wait 1-2 minutes - your site will be live at: `https://YOUR_USERNAME.github.io/REPO_NAME/`
-
-#### Option B: Using Git Command Line
-
-If you have the repository cloned locally:
-
-```bash
-cd /path/to/birthday_invitation
-
-# Initialize git (if not already done)
-git init
-
-# Add all files
-git add .
-
-# Commit changes
-git commit -m "Initial setup with Firebase configuration"
-
-# Add your GitHub repository as remote
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-
-# Push to GitHub
-git branch -M main
-git push -u origin main
-```
-
-Then follow Option A steps 2-7 to enable GitHub Pages.
-
----
+1. Visit your website
+2. Click **"Get Started"**
+3. Enter email/password (first time creates account)
+4. Click **"+ Create New Event"**
+5. Fill in event details
+6. Click **"Save Event"**
+7. Click **"Select"** on your event
+8. Generate invitation links
+9. Share with guests!
 
 ## 📖 How to Use
 
-### For You (Event Organizer)
+### For Event Organizers
 
-1. **Login**: Go to your GitHub Pages URL and click "Admin Login"
-2. **Login with your account** (the one you created in Step 10)
-3. **Configure Event**: 
-   - Event name (e.g., "Sarah's 30th Birthday")
-   - Event date
-   - Custom message (e.g., "Join us for an unforgettable evening...")
-   - Optional: Add an invitation image URL
-4. **Create Invitation Links**:
-   - Enter recipient name/group (e.g., "Smith Family")
-   - Set maximum guests allowed (e.g., 4)
-   - Click "Generate Link"
-5. **Copy and Share**: Copy the generated link and email it to your guests
-6. **Track RSVPs**: Watch your dashboard update in real-time as guests respond!
+1. **Create Events**: Click "+ Create New Event" to add birthday parties
+2. **Select Event**: Click "Select" on the event you want to work with
+3. **Generate Links**: Create links with different guest limits (e.g., 2 guests, 5 guests)
+4. **Share Links**: Send the same link to multiple families
+5. **Track RSVPs**: Watch responses come in real-time
+6. **Manage**: Edit or delete events as needed
 
-### For Your Guests
+### For Guests
 
-Guests simply:
-1. Click the invitation link you sent them
-2. See the beautiful invitation with all event details
-3. Click "Yes, I'll be there!" or "Sorry, can't make it"
-4. If attending, enter names of all guests coming
-5. Add any special notes (dietary restrictions, etc.)
-6. Submit - done!
+1. Click the invitation link you received
+2. See the birthday invitation with all details
+3. Select "Yes, I'll be there!" or "Sorry, can't make it"
+4. Enter your family/group name
+5. Add names of all attending guests
+6. Add optional message to organizers
+7. Submit!
 
----
-
-## 🗂️ Project Structure
+## 🏗️ Project Structure
 
 ```
 birthday_invitation/
-├── index.html          # Admin dashboard page
+├── index.html          # Admin dashboard
 ├── rsvp.html          # Guest RSVP page
-├── app.js             # Admin functionality & Firebase initialization
-├── rsvp.js            # Guest RSVP functionality
-├── styles.css         # All styling (responsive design)
-├── firebase-setup.html # Detailed Firebase setup guide
-├── examples.html      # Usage examples and inspiration
-├── README.md          # This file
-└── .github/
-    └── workflows/
-        └── deploy.yml  # Optional: GitHub Actions auto-deployment
+├── app.js             # Admin logic
+├── rsvp.js            # Guest RSVP logic
+├── styles.css         # All styling
+├── firestore.rules    # Database security rules
+└── README.md          # This file
 ```
 
----
+## 🔒 Security Features
 
-## 🔒 Security & Privacy
+- ✅ XSS protection with HTML escaping
+- ✅ Input validation (client + server)
+- ✅ Firestore security rules
+- ✅ Authentication required for admin actions
+- ✅ Event listeners (no inline onclick)
+- ✅ Private fork recommended for credentials
 
-### Why Keep Your Fork Private?
+## 💡 Tips
 
-- Your Firebase credentials are in `app.js` and `rsvp.js`
-- While Firebase API keys are safe to expose (security is handled by Firestore rules), keeping it private prevents:
-  - Unauthorized users from seeing your Firebase project name
-  - Potential abuse of your Firebase quota
-  - People seeing your guest list and event details
+- **Image Hosting**: Use [Imgur](https://imgur.com) or [imgbb](https://imgbb.com) for invitation images (Google Drive doesn't work)
+- **Testing**: Test locally with `python3 -m http.server 8080` before deploying
+- **Multiple Events**: Perfect for managing multiple kids' birthdays or annual events
+- **Link Management**: Create different links for different group sizes
+- **RSVP Tracking**: Use the admin dashboard to see who's confirmed in real-time
 
-### Firebase Security
+## 🆘 Troubleshooting
 
-- **API Keys**: Safe to include in code - security is enforced by Firestore rules
-- **Firestore Rules**: Control who can read/write data
-- **Authentication**: Only you can create invitation links
-- **Guest Access**: Guests can only view/update the specific invitation they receive
+**Can't see events after login?**
+- Hard refresh browser: `Ctrl+Shift+R` (Windows/Linux) or `Cmd+Shift+R` (Mac)
 
-### What's Safe to Share?
+**Image not showing on RSVP page?**
+- Don't use Google Drive links
+- Use direct image URLs from Imgur or imgbb
 
-✅ The original public repository (without your Firebase config)
-✅ Invitation links with your guests
-✅ Your live website URL
+**Date showing wrong?**
+- Should now be fixed with local timezone handling
 
-❌ Your Firebase credentials
-❌ Your admin login credentials
-❌ Your private fork repository
+**No RSVPs showing?**
+- Make sure you've selected an event
+- Check browser console (F12) for errors
+- Verify Firestore rules are deployed
 
----
+**Firebase errors?**
+- Double-check Firebase config in both `app.js` and `rsvp.js`
+- Verify domain is in Firebase authorized domains
 
-## 🎨 Customization
+## 📝 License
 
-### Change Colors
+MIT License - Feel free to use for your own events!
 
-Edit CSS variables in `styles.css` (lines 1-12):
+## 🎈 Credits
 
-```css
-:root {
-    --primary-color: #6366f1;    /* Main purple */
-    --secondary-color: #ec4899;  /* Pink accent */
-    --success-color: #10b981;    /* Green for success messages */
-    /* ... more colors */
-}
-```
-
-### Add Your Own Invitation Image
-
-1. Upload your image to a hosting service (Imgur, Google Drive, etc.)
-2. Get the direct image URL
-3. In the admin dashboard, paste the URL in "Invitation Image URL" field
-
-### Custom Domain (Optional)
-
-If you want `invitation.yourdomain.com` instead of `username.github.io`:
-
-1. Buy a domain (Namecheap, Google Domains, etc.)
-2. Add a `CNAME` file to your repository with your domain
-3. Configure DNS with your domain provider
-4. In Firebase Console, add your custom domain to authorized domains
-5. Follow [GitHub's custom domain guide](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site)
-
----
-
-## 🐛 Troubleshooting
-
-### Problem: "Firebase modules failed to load"
-
-**Solution**: Check your internet connection. Firebase SDK loads from CDN. Try refreshing the page.
-
-### Problem: "Invalid Invitation Link" on RSVP page
-
-**Solutions**:
-1. Make sure you copied the complete link (including `?id=...`)
-2. Check that the invitation exists in your Firebase Firestore database
-3. Verify Firestore security rules are correctly set up (Step 7)
-
-### Problem: Admin dashboard shows "No invitation links created yet" but I created some
-
-**Solutions**:
-1. Check browser console (F12) for errors
-2. Most common issue: Missing Firestore index (Step 8)
-3. Go to Firestore → Indexes tab and create the required index
-4. Refresh the page after index is created
-
-### Problem: "Error creating invitation link: Missing or insufficient permissions"
-
-**Solutions**:
-1. Verify Firestore security rules (Step 7)
-2. Make sure you're logged in as admin
-3. Check that `allow create: if request.auth != null;` is in your rules
-
-### Problem: Guest can't submit RSVP - "Permission denied"
-
-**Solutions**:
+Built with vanilla JavaScript, Firebase, and love! Perfect for making birthday parties more organized and fun.**Solutions**:
 1. Verify Firestore rules include: `allow read, update: if true;` for invitations
 2. Check Firebase Console → Firestore → Rules and re-publish them
 3. Make sure events collection also has: `allow read: if true;`

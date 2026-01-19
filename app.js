@@ -7,7 +7,7 @@ const firebaseConfig = {
     storageBucket: "YOUR_PROJECT_ID.appspot.com",
     messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
     appId: "YOUR_APP_ID"
-};
+  };
 
 // Initialize Firebase
 let app, auth, db;
@@ -69,6 +69,11 @@ const getStartedBtn = document.getElementById('get-started-btn');
 
 // Event Form
 const eventForm = document.getElementById('event-form');
+const eventFormCard = document.getElementById('event-form-card');
+const eventFormTitle = document.getElementById('event-form-title');
+const createNewEventBtn = document.getElementById('create-new-event-btn');
+const cancelEventBtn = document.getElementById('cancel-event-btn');
+const eventsListContainer = document.getElementById('events-list-container');
 const eventNameInput = document.getElementById('event-name');
 const eventDateInput = document.getElementById('event-date');
 const eventMessageInput = document.getElementById('event-message');
@@ -76,11 +81,17 @@ const invitationImageInput = document.getElementById('invitation-image');
 
 // Link Form
 const linkForm = document.getElementById('link-form');
-const recipientNameInput = document.getElementById('recipient-name');
+const linkFormCard = document.getElementById('link-form-card');
+const selectedEventNameEl = document.getElementById('selected-event-name');
 const maxGuestsInput = document.getElementById('max-guests');
 const generatedLinkDiv = document.getElementById('generated-link');
 const linkUrlInput = document.getElementById('link-url');
 const copyLinkBtn = document.getElementById('copy-link-btn');
+
+// State
+let selectedEventId = null;
+let isEditingEvent = false;
+let editingEventId = null;
 
 // Stats
 const totalLinksEl = document.getElementById('total-links');
@@ -120,14 +131,14 @@ function setupAuthObserver() {
             landingSection.style.display = 'none';
             adminSection.style.display = 'block';
             loginModal.style.display = 'none';
-            loadEventData();
-            loadInvitations();
+            loadEvents();
         } else {
             // User is signed out
             loginBtn.style.display = 'block';
             logoutBtn.style.display = 'none';
             landingSection.style.display = 'block';
             adminSection.style.display = 'none';
+            selectedEventId = null;
         }
     });
 }
@@ -173,6 +184,23 @@ logoutBtn.addEventListener('click', async () => {
     }
 });
 
+// Create New Event Button
+createNewEventBtn.addEventListener('click', () => {
+    isEditingEvent = false;
+    editingEventId = null;
+    eventFormTitle.textContent = 'Create New Event';
+    eventForm.reset();
+    eventFormCard.style.display = 'block';
+});
+
+// Cancel Event Button
+cancelEventBtn.addEventListener('click', () => {
+    eventFormCard.style.display = 'none';
+    eventForm.reset();
+    isEditingEvent = false;
+    editingEventId = null;
+});
+
 // Event Form Submit
 eventForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -188,35 +216,178 @@ eventForm.addEventListener('submit', async (e) => {
         date: eventDateInput.value,
         message: eventMessageInput.value,
         imageUrl: invitationImageInput.value,
+        createdAt: isEditingEvent ? undefined : new Date().toISOString(),
         updatedAt: new Date().toISOString()
     };
 
+    // Remove undefined fields
+    Object.keys(eventData).forEach(key => eventData[key] === undefined && delete eventData[key]);
+
     try {
-        const eventDocRef = window.firebaseModules.doc(db, 'events', currentUser.uid);
-        await window.firebaseModules.setDoc(eventDocRef, eventData);
-        alert('Event details saved successfully!');
+        if (isEditingEvent && editingEventId) {
+            // Update existing event
+            const eventDocRef = window.firebaseModules.doc(db, 'events', editingEventId);
+            await window.firebaseModules.updateDoc(eventDocRef, eventData);
+            alert('Event updated successfully!');
+        } else {
+            // Create new event
+            await window.firebaseModules.addDoc(window.firebaseModules.collection(db, 'events'), eventData);
+            alert('Event created successfully!');
+        }
+        
+        eventFormCard.style.display = 'none';
+        eventForm.reset();
+        isEditingEvent = false;
+        editingEventId = null;
+        loadEvents();
     } catch (error) {
         alert('Error saving event: ' + error.message);
     }
 });
 
-// Load Event Data
-async function loadEventData() {
+// Load All Events
+async function loadEvents() {
     if (!currentUser) return;
 
     try {
-        const eventDocRef = window.firebaseModules.doc(db, 'events', currentUser.uid);
-        const eventDoc = await window.firebaseModules.getDoc(eventDocRef);
+        const eventsQuery = window.firebaseModules.query(
+            window.firebaseModules.collection(db, 'events'),
+            window.firebaseModules.where('userId', '==', currentUser.uid)
+        );
         
-        if (eventDoc.exists()) {
-            const data = eventDoc.data();
-            eventNameInput.value = data.name || '';
-            eventDateInput.value = data.date || '';
-            eventMessageInput.value = data.message || '';
-            invitationImageInput.value = data.imageUrl || '';
+        const snapshot = await window.firebaseModules.getDocs(eventsQuery);
+        
+        if (snapshot.empty) {
+            eventsListContainer.innerHTML = '<p class="no-data">No events yet. Create your first event!</p>';
+            linkFormCard.style.display = 'none';
+            return;
         }
+        
+        const events = [];
+        snapshot.forEach(doc => {
+            events.push({ id: doc.id, ...doc.data() });
+        });
+        
+        // Sort by createdAt in JavaScript instead
+        events.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        
+        // Display events
+        eventsListContainer.innerHTML = events.map(event => {
+            const date = new Date(event.date).toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric' 
+            });
+            const isSelected = selectedEventId === event.id;
+            
+            return `
+                <div class="event-item ${isSelected ? 'selected' : ''}" data-event-id="${event.id}">
+                    <div class="event-info">
+                        <h4>${escapeHtml(event.name)}</h4>
+                        <p>${date}</p>
+                    </div>
+                    <div class="event-actions">
+                        <button class="btn btn-small btn-secondary select-event-btn" data-event-id="${event.id}">
+                            ${isSelected ? '✓ Selected' : 'Select'}
+                        </button>
+                        <button class="btn btn-small btn-secondary edit-event-btn" data-event-id="${event.id}">Edit</button>
+                        <button class="btn btn-small btn-danger delete-event-btn" data-event-id="${event.id}">Delete</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        // Attach event listeners
+        document.querySelectorAll('.select-event-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                selectEvent(this.dataset.eventId);
+            });
+        });
+        
+        document.querySelectorAll('.edit-event-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                editEvent(this.dataset.eventId, events);
+            });
+        });
+        
+        document.querySelectorAll('.delete-event-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                deleteEvent(this.dataset.eventId);
+            });
+        });
+        
     } catch (error) {
-        console.error('Error loading event data:', error);
+        console.error('Error loading events:', error);
+        eventsListContainer.innerHTML = '<p class="error-text">Error loading events</p>';
+    }
+}
+
+// Select Event
+function selectEvent(eventId) {
+    selectedEventId = eventId;
+    loadEvents(); // Refresh to show selection
+    
+    // Find event name
+    const eventItem = document.querySelector(`.event-item[data-event-id="${eventId}"]`);
+    const eventName = eventItem?.querySelector('h4')?.textContent || 'Event';
+    
+    selectedEventNameEl.textContent = `Creating link for: ${eventName}`;
+    linkFormCard.style.display = 'block';
+    
+    // Load invitations for this event
+    loadInvitations();
+}
+
+// Edit Event
+function editEvent(eventId, events) {
+    const event = events.find(e => e.id === eventId);
+    if (!event) return;
+    
+    isEditingEvent = true;
+    editingEventId = eventId;
+    eventFormTitle.textContent = 'Edit Event';
+    
+    eventNameInput.value = event.name || '';
+    eventDateInput.value = event.date || '';
+    eventMessageInput.value = event.message || '';
+    invitationImageInput.value = event.imageUrl || '';
+    
+    eventFormCard.style.display = 'block';
+}
+
+// Delete Event
+async function deleteEvent(eventId) {
+    if (!confirm('Are you sure you want to delete this event?\n\nThis will also delete all invitation links for this event.')) {
+        return;
+    }
+    
+    try {
+        // Delete event
+        await window.firebaseModules.deleteDoc(window.firebaseModules.doc(db, 'events', eventId));
+        
+        // Delete all invitations for this event
+        const invitationsQuery = window.firebaseModules.query(
+            window.firebaseModules.collection(db, 'invitations'),
+            window.firebaseModules.where('eventId', '==', eventId)
+        );
+        const invitationsSnapshot = await window.firebaseModules.getDocs(invitationsQuery);
+        
+        const deletePromises = [];
+        invitationsSnapshot.forEach(doc => {
+            deletePromises.push(window.firebaseModules.deleteDoc(doc.ref));
+        });
+        await Promise.all(deletePromises);
+        
+        alert('Event deleted successfully!');
+        
+        if (selectedEventId === eventId) {
+            selectedEventId = null;
+            linkFormCard.style.display = 'none';
+        }
+        
+        loadEvents();
+    } catch (error) {
+        alert('Error deleting event: ' + error.message);
     }
 }
 
@@ -228,15 +399,14 @@ linkForm.addEventListener('submit', async (e) => {
         alert('Please login first');
         return;
     }
-
-    // Input validation
-    const recipientName = recipientNameInput.value.trim();
-    const maxGuests = parseInt(maxGuestsInput.value);
     
-    if (!recipientName || recipientName.length < 1 || recipientName.length > 100) {
-        alert('Recipient name must be between 1 and 100 characters');
+    if (!selectedEventId) {
+        alert('Please select an event first');
         return;
     }
+
+    // Input validation
+    const maxGuests = parseInt(maxGuestsInput.value);
     
     if (isNaN(maxGuests) || maxGuests < 1 || maxGuests > 50) {
         alert('Maximum guests must be between 1 and 50');
@@ -246,13 +416,11 @@ linkForm.addEventListener('submit', async (e) => {
     const linkId = generateLinkId();
     const linkData = {
         userId: currentUser.uid,
+        eventId: selectedEventId,
         linkId: linkId,
-        recipientName: recipientName,
         maxGuests: maxGuests,
-        status: 'pending',
         rsvpSubmitted: false,
-        guestNames: [],
-        additionalNotes: '',
+        rsvps: [], // Array to store multiple RSVPs per link
         createdAt: new Date().toISOString()
     };
 
@@ -296,18 +464,37 @@ function generateLinkId() {
 let invitationsUnsubscribe = null;
 
 async function loadInvitations() {
-    if (!currentUser) return;
+    console.log('=== loadInvitations called ===');
+    console.log('currentUser:', currentUser?.uid);
+    console.log('selectedEventId:', selectedEventId);
+    
+    if (!currentUser || !selectedEventId) {
+        console.log('Missing user or event, showing placeholder');
+        rsvpTbody.innerHTML = '<tr><td colspan="7" class="no-data">Please select an event first</td></tr>';
+        totalLinksEl.textContent = '0';
+        totalRsvpsEl.textContent = '0';
+        totalGuestsEl.textContent = '0';
+        return;
+    }
+
+    // Unsubscribe from previous listener if exists
+    if (invitationsUnsubscribe) {
+        invitationsUnsubscribe();
+        invitationsUnsubscribe = null;
+    }
 
     try {
+        console.log('Setting up invitations query for eventId:', selectedEventId);
         const invitationsQuery = window.firebaseModules.query(
             window.firebaseModules.collection(db, 'invitations'),
-            window.firebaseModules.where('userId', '==', currentUser.uid),
-            window.firebaseModules.orderBy('createdAt', 'desc')
+            window.firebaseModules.where('eventId', '==', selectedEventId)
         );
 
-        // Set up real-time listener only once
-        if (!invitationsUnsubscribe) {
-            invitationsUnsubscribe = window.firebaseModules.onSnapshot(invitationsQuery, (snapshot) => {
+        // Set up real-time listener
+        invitationsUnsubscribe = window.firebaseModules.onSnapshot(invitationsQuery, (snapshot) => {
+                console.log('=== Invitations snapshot received ===');
+                console.log('Snapshot size:', snapshot.size);
+                
                 let totalLinks = 0;
                 let totalRsvps = 0;
                 let totalGuests = 0;
@@ -315,13 +502,27 @@ async function loadInvitations() {
 
                 snapshot.forEach((doc) => {
                     const data = doc.data();
+                    console.log('Invitation doc:', doc.id, data);
                     invitations.push(data);
                     totalLinks++;
-                    if (data.rsvpSubmitted) {
-                        totalRsvps++;
-                        totalGuests += data.guestNames.length;
-                    }
+                    
+                    // Count RSVPs from the rsvps array
+                    const rsvps = data.rsvps || [];
+                    console.log('RSVPs for this link:', rsvps);
+                    totalRsvps += rsvps.length;
+                    
+                    // Count total confirmed guests
+                    rsvps.forEach(rsvp => {
+                        if (rsvp.attending && rsvp.guestNames) {
+                            totalGuests += rsvp.guestNames.length;
+                        }
+                    });
                 });
+                
+                // Sort by createdAt in JavaScript
+                invitations.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                
+                console.log('Final counts - Links:', totalLinks, 'RSVPs:', totalRsvps, 'Guests:', totalGuests);
 
                 // Update stats
                 totalLinksEl.textContent = totalLinks;
@@ -333,31 +534,37 @@ async function loadInvitations() {
                     rsvpTbody.innerHTML = '<tr><td colspan="7" class="no-data">No invitation links created yet</td></tr>';
                 } else {
                     rsvpTbody.innerHTML = invitations.map(inv => {
-                        const statusClass = inv.rsvpSubmitted ? 
-                            (inv.guestNames.length > 0 ? 'status-confirmed' : 'status-declined') : 
-                            'status-pending';
-                        const statusText = inv.rsvpSubmitted ? 
-                            (inv.guestNames.length > 0 ? 'Confirmed' : 'Declined') : 
-                            'Pending';
+                        const rsvps = inv.rsvps || [];
+                        const confirmedRsvps = rsvps.filter(r => r.attending);
+                        const totalConfirmed = confirmedRsvps.reduce((sum, r) => sum + (r.guestNames?.length || 0), 0);
                         
                         const baseUrl = window.location.origin + window.location.pathname.replace('index.html', '');
                         const invitationUrl = `${baseUrl}rsvp.html?id=${escapeHtml(inv.linkId)}`;
                         
-                        // Sanitize all user-provided data to prevent XSS
-                        const safeRecipientName = escapeHtml(inv.recipientName);
-                        const safeGuestNames = inv.guestNames.map(name => escapeHtml(name)).join(', ') || '-';
+                        // Sanitize data
                         const safeLinkId = escapeHtml(inv.linkId);
+                        const shortLinkId = inv.linkId.substring(0, 8) + '...';
+                        
+                        // Build response details
+                        let responseDetails = '-';
+                        if (rsvps.length > 0) {
+                            responseDetails = rsvps.map(r => {
+                                const names = r.guestNames?.join(', ') || 'N/A';
+                                const status = r.attending ? '✓' : '✗';
+                                return `${status} ${escapeHtml(names)}`;
+                            }).join('<br>');
+                        }
                         
                         return `
                             <tr>
-                                <td>${safeRecipientName}</td>
-                                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                                <td>${inv.guestNames.length}</td>
-                                <td>${safeGuestNames}</td>
+                                <td><code>${escapeHtml(shortLinkId)}</code></td>
                                 <td>${inv.maxGuests}</td>
+                                <td>${rsvps.length}</td>
+                                <td>${totalConfirmed}</td>
+                                <td style="max-width: 200px;">${responseDetails}</td>
                                 <td><span class="link-cell" data-url="${escapeHtml(invitationUrl)}">Copy Link</span></td>
                                 <td>
-                                    <button class="btn btn-danger btn-small delete-btn" data-link-id="${safeLinkId}" data-recipient-name="${safeRecipientName}">Delete</button>
+                                    <button class="btn btn-danger btn-small delete-btn" data-link-id="${safeLinkId}">Delete</button>
                                 </td>
                             </tr>
                         `;
@@ -369,8 +576,7 @@ async function loadInvitations() {
                         document.querySelectorAll('.delete-btn').forEach(btn => {
                             btn.addEventListener('click', function() {
                                 const linkId = this.dataset.linkId;
-                                const recipientName = this.dataset.recipientName;
-                                deleteInvitation(linkId, recipientName);
+                                deleteInvitation(linkId);
                             });
                         });
                         
@@ -382,8 +588,7 @@ async function loadInvitations() {
                         });
                     }, 0);
                 }
-            });
-        }
+        });
 
     } catch (error) {
         console.error('Error loading invitations:', error);
@@ -402,9 +607,9 @@ function copyToClipboard(text) {
 }
 
 // Delete Invitation
-async function deleteInvitation(linkId, recipientName) {
+async function deleteInvitation(linkId) {
     // Confirm deletion
-    const confirmDelete = confirm(`Are you sure you want to delete the invitation for "${recipientName}"?\n\nThis action cannot be undone.`);
+    const confirmDelete = confirm(`Are you sure you want to delete this invitation link (${linkId.substring(0, 8)}...)?\n\nThis action cannot be undone.`);
     
     if (!confirmDelete) {
         return;
@@ -420,7 +625,7 @@ async function deleteInvitation(linkId, recipientName) {
         await window.firebaseModules.deleteDoc(invitationDocRef);
         
         // Success message
-        alert(`Invitation for "${recipientName}" has been deleted successfully.`);
+        alert('Invitation link has been deleted successfully.');
     } catch (error) {
         console.error('Error deleting invitation:', error);
         alert('Error deleting invitation: ' + error.message);
