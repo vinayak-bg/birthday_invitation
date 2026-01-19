@@ -219,8 +219,11 @@ function setupRsvpForm() {
         radio.addEventListener('change', (e) => {
             if (e.target.value === 'yes') {
                 guestDetailsSection.style.display = 'block';
+                numGuestsSelect.setAttribute('required', 'required');
             } else {
                 guestDetailsSection.style.display = 'none';
+                numGuestsSelect.removeAttribute('required');
+                numGuestsSelect.value = ''; // Clear selection
             }
         });
     });
