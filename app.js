@@ -1,13 +1,15 @@
 // Firebase Configuration
 // IMPORTANT: Replace this with your own Firebase configuration
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
-  };
+  apiKey: "AIzaSyBbSpb1G9KVo6CxyWrjzYdH4u5OTahNpVE",
+    authDomain: "birthday-invitation-4920b.firebaseapp.com",
+    projectId: "birthday-invitation-4920b",
+    storageBucket: "birthday-invitation-4920b.firebasestorage.app",
+    messagingSenderId: "455710154033",
+    appId: "1:455710154033:web:92fee81509f7e916386410"
+ 
+};
+
 
 // Initialize Firebase
 let app, auth, db;
