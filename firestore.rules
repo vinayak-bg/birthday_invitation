@@ -18,53 +18,62 @@ service cloud.firestore {
     }
     
     // Events collection
-    match /events/{userId} {
-      // Owner can read and write their own events
-      allow read, write: if isOwner(userId);
+    match /events/{eventId} {
+      // Owner can create their own events
+      allow create: if isAuthenticated() 
+        && request.resource.data.userId == request.auth.uid
+        && validStringLength(request.resource.data.name, 1, 200)
+        && validStringLength(request.resource.data.get('message', ''), 0, 1000);
+      
+      // Owner can read, update, and delete their own events
+      allow read, update, delete: if isAuthenticated() 
+        && resource.data.userId == request.auth.uid;
       
       // Anyone can read event details (needed for guest RSVP page)
       allow read: if true;
-      
-      // Validate event data on write
-      allow create, update: if isOwner(userId) 
-        && validStringLength(request.resource.data.name, 1, 200)
-        && validStringLength(request.resource.data.message, 0, 1000)
-        && request.resource.data.userId == userId;
     }
     
     // Invitations collection
     match /invitations/{invitationId} {
       // Owner can create invitations
-      // IMPROVED: Ensure userId in data matches authenticated user
+      // Links are now generic (not tied to specific recipients)
       allow create: if isAuthenticated() 
         && request.resource.data.userId == request.auth.uid
-        && validStringLength(request.resource.data.recipientName, 1, 100)
+        && request.resource.data.eventId is string
         && request.resource.data.maxGuests is int
         && request.resource.data.maxGuests >= 1 
-        && request.resource.data.maxGuests <= 50;
+        && request.resource.data.maxGuests <= 50
+        && request.resource.data.rsvps is list;
       
       // Owner can read, update, and delete their own invitations
-      allow read, write, delete: if isAuthenticated() 
+      allow read, update, delete: if isAuthenticated() 
         && resource.data.userId == request.auth.uid;
       
       // Anyone (including unauthenticated guests) can read invitations
       allow read: if true;
       
       // Anyone can update for RSVP submission (guests are not authenticated)
-      // But validate the data being submitted
+      // Validate the RSVP data being appended to rsvps array
       allow update: if 
         // Can only update these specific fields for RSVP
         request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['rsvpSubmitted', 'guestNames', 'additionalNotes', 'status', 'rsvpDate'])
-        // Validate guest names array
-        && request.resource.data.guestNames is list
-        && request.resource.data.guestNames.size() <= resource.data.maxGuests
-        // Validate each guest name length (1-100 chars)
-        && request.resource.data.guestNames.hasAll(
-          request.resource.data.guestNames
-        )
-        // Validate additional notes length
-        && validStringLength(request.resource.data.get('additionalNotes', ''), 0, 500)
+          .hasOnly(['rsvpSubmitted', 'rsvps'])
+        // Validate rsvps is an array
+        && request.resource.data.rsvps is list
+        // New RSVP added (array grew by 1)
+        && request.resource.data.rsvps.size() == resource.data.rsvps.size() + 1
+        // Validate the new RSVP entry has required fields
+        && request.resource.data.rsvps[request.resource.data.rsvps.size() - 1].keys().hasAll(['familyName', 'attending', 'guestNames', 'additionalNotes', 'rsvpDate'])
+        // Validate familyName length (1-100 chars)
+        && validStringLength(request.resource.data.rsvps[request.resource.data.rsvps.size() - 1].familyName, 1, 100)
+        // Validate attending is boolean
+        && request.resource.data.rsvps[request.resource.data.rsvps.size() - 1].attending is bool
+        // Validate guestNames is an array
+        && request.resource.data.rsvps[request.resource.data.rsvps.size() - 1].guestNames is list
+        // Validate guestNames doesn't exceed maxGuests
+        && request.resource.data.rsvps[request.resource.data.rsvps.size() - 1].guestNames.size() <= resource.data.maxGuests
+        // Validate additionalNotes length (0-500 chars)
+        && validStringLength(request.resource.data.rsvps[request.resource.data.rsvps.size() - 1].get('additionalNotes', ''), 0, 500)
         // Ensure rsvpSubmitted is boolean
         && request.resource.data.rsvpSubmitted is bool;
     }

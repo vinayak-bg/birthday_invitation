@@ -1,13 +1,15 @@
 // Firebase Configuration
 // IMPORTANT: Replace this with your own Firebase configuration
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBbSpb1G9KVo6CxyWrjzYdH4u5OTahNpVE",
+    authDomain: "birthday-invitation-4920b.firebaseapp.com",
+    projectId: "birthday-invitation-4920b",
+    storageBucket: "birthday-invitation-4920b.firebasestorage.app",
+    messagingSenderId: "455710154033",
+    appId: "1:455710154033:web:92fee81509f7e916386410"
+ 
 };
+
 // Initialize Firebase
 let app, db;
 
@@ -28,10 +30,6 @@ const invitationId = urlParams.get('id');
 
 // Function to initialize Firebase
 function initializeFirebase() {
-    console.log('Initializing Firebase...');
-    console.log('Firebase modules available:', !!window.firebaseModules);
-    console.log('Invitation ID:', invitationId);
-    
     if (!window.firebaseModules) {
         console.error('Firebase modules not loaded');
         showInvalid();
@@ -41,14 +39,11 @@ function initializeFirebase() {
     try {
         app = window.firebaseModules.initializeApp(firebaseConfig);
         db = window.firebaseModules.getFirestore(app);
-        console.log('Firebase initialized successfully', { app, db });
         
         // Start loading invitation
         if (invitationId) {
-            console.log('Starting to load invitation...');
             setTimeout(() => loadInvitation(), 100); // Small delay to ensure DB is ready
         } else {
-            console.error('No invitation ID in URL');
             showInvalid();
         }
         return true;
@@ -78,7 +73,6 @@ const successSection = document.getElementById('success-section');
 // Event Details
 const eventNameEl = document.getElementById('event-name');
 const eventDateEl = document.getElementById('event-date');
-const recipientNameEl = document.getElementById('recipient-name');
 const eventMessageEl = document.getElementById('event-message');
 const invitationImageContainer = document.getElementById('invitation-image-container');
 const invitationImage = document.getElementById('invitation-image');
@@ -88,6 +82,7 @@ const rsvpForm = document.getElementById('rsvp-form');
 const rsvpStatusSection = document.getElementById('rsvp-status-section');
 const rsvpFormSection = document.getElementById('rsvp-form-section');
 const guestDetailsSection = document.getElementById('guest-details-section');
+const familyNameInput = document.getElementById('family-name');
 const numGuestsSelect = document.getElementById('num-guests');
 const maxGuestsNote = document.getElementById('max-guests-note');
 const guestNamesContainer = document.getElementById('guest-names-container');
@@ -100,49 +95,39 @@ let eventData = null;
 // Note: invitationId is declared at the top of the file, loadInvitation will be called after Firebase initializes
 
 async function loadInvitation() {
-    console.log('=== Starting loadInvitation ===');
-    console.log('DB object:', db);
-    console.log('Invitation ID:', invitationId);
-    console.log('Firebase modules:', window.firebaseModules);
-    
     try {
         // Load invitation data
-        console.log('Creating doc reference...');
         const invitationDocRef = window.firebaseModules.doc(db, 'invitations', invitationId);
-        console.log('Doc reference created:', invitationDocRef);
-        
-        console.log('Fetching document...');
         const invitationDoc = await window.firebaseModules.getDoc(invitationDocRef);
-        console.log('Document fetched. Exists:', invitationDoc.exists);
         
         if (!invitationDoc.exists) {
-            console.error('Invitation document does not exist');
             showInvalid();
             return;
         }
 
         invitationData = invitationDoc.data();
-        console.log('Invitation data loaded:', invitationData);
         
-        // Load event data
-        console.log('Loading event data for userId:', invitationData.userId);
-        const eventDocRef = window.firebaseModules.doc(db, 'events', invitationData.userId);
+        // Load event data using eventId from invitation
+        if (!invitationData.eventId) {
+            showInvalid();
+            return;
+        }
+        
+        const eventDocRef = window.firebaseModules.doc(db, 'events', invitationData.eventId);
         const eventDoc = await window.firebaseModules.getDoc(eventDocRef);
         
         if (eventDoc.exists) {
             eventData = eventDoc.data();
-            console.log('Event data loaded:', eventData);
         } else {
-            console.log('No event data found');
+            showInvalid();
+            return;
         }
 
         // Display invitation
-        console.log('Displaying invitation...');
         displayInvitation();
         
     } catch (error) {
         console.error('Error in loadInvitation:', error);
-        console.error('Error details:', error.message, error.code);
         alert('Error loading invitation: ' + error.message);
         showInvalid();
     }
@@ -156,18 +141,30 @@ function displayInvitation() {
     if (eventData) {
         eventNameEl.textContent = eventData.name || 'Birthday Celebration';
         
-        if (eventData.date) {
-            const date = new Date(eventData.date);
-            eventDateEl.textContent = date.toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-            });
+        if (eventData.date && typeof eventData.date === 'string' && eventData.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            // Parse date as local date to avoid timezone issues
+            // eventData.date is in format "YYYY-MM-DD"
+            try {
+                const [year, month, day] = eventData.date.split('-');
+                const date = new Date(year, month - 1, day); // month is 0-indexed
+                eventDateEl.textContent = date.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+            } catch (error) {
+                console.error('Error parsing date:', error);
+                eventDateEl.textContent = 'Date to be announced';
+            }
+        } else {
+            eventDateEl.textContent = 'Date to be announced';
         }
         
         if (eventData.message) {
-            eventMessageEl.textContent = eventData.message;
+            // Escape HTML but preserve newlines by converting to <br>
+            const escapedMessage = escapeHtml(eventData.message).replace(/\n/g, '<br>');
+            eventMessageEl.innerHTML = escapedMessage;
         }
         
         if (eventData.imageUrl) {
@@ -176,14 +173,8 @@ function displayInvitation() {
         }
     }
 
-    recipientNameEl.textContent = invitationData.recipientName;
-
-    // Check if already RSVP'd
-    if (invitationData.rsvpSubmitted) {
-        showRsvpStatus();
-    } else {
-        setupRsvpForm();
-    }
+    // Always show RSVP form (multiple people can RSVP with same link)
+    setupRsvpForm();
 }
 
 function showRsvpStatus() {
@@ -248,8 +239,8 @@ function updateGuestNameInputs(numGuests) {
         const formGroup = document.createElement('div');
         formGroup.className = 'form-group';
         formGroup.innerHTML = `
-            <label for="guest-name-${i}">Guest ${i} Name</label>
-            <input type="text" id="guest-name-${i}" placeholder="Full name" required>
+            <label for="guest-name-${i}">Guest ${i} Name (optional)</label>
+            <input type="text" id="guest-name-${i}" placeholder="Full name">
         `;
         guestNamesContainer.appendChild(formGroup);
     }
@@ -266,10 +257,18 @@ rsvpForm.addEventListener('submit', async (e) => {
 
     const attending = document.querySelector('input[name="attending"]:checked').value;
     
+    let familyName = '';
     let guestNames = [];
     let additionalNotes = '';
 
     if (attending === 'yes') {
+        // Validate family name
+        familyName = familyNameInput.value.trim();
+        if (!familyName || familyName.length < 1 || familyName.length > 100) {
+            alert('Family/Group name must be between 1 and 100 characters');
+            return;
+        }
+        
         const numGuests = parseInt(numGuestsSelect.value);
         
         if (!numGuests) {
@@ -277,23 +276,19 @@ rsvpForm.addEventListener('submit', async (e) => {
             return;
         }
 
-        // Collect and validate guest names
+        // Collect guest names (optional)
         for (let i = 1; i <= numGuests; i++) {
             const guestNameInput = document.getElementById(`guest-name-${i}`);
             const guestName = guestNameInput ? guestNameInput.value.trim() : '';
             
-            // Validate guest name length
-            if (!guestName || guestName.length < 1 || guestName.length > 100) {
-                alert(`Guest ${i} name must be between 1 and 100 characters`);
-                return;
+            // Guest names are optional, but if provided, validate length
+            if (guestName) {
+                if (guestName.length > 100) {
+                    alert(`Guest ${i} name must be less than 100 characters`);
+                    return;
+                }
+                guestNames.push(guestName);
             }
-            
-            guestNames.push(guestName);
-        }
-
-        if (guestNames.length !== numGuests) {
-            alert('Please enter all guest names');
-            return;
         }
 
         additionalNotes = document.getElementById('additional-notes').value.trim();
@@ -305,15 +300,23 @@ rsvpForm.addEventListener('submit', async (e) => {
         }
     }
 
-    // Update invitation in database
+    // Create RSVP entry
+    const rsvpEntry = {
+        familyName: familyName || 'Declined',
+        attending: attending === 'yes',
+        guestNames: guestNames,
+        additionalNotes: additionalNotes,
+        rsvpDate: new Date().toISOString()
+    };
+
+    // Append to rsvps array in the invitation document using arrayUnion to prevent race conditions
     try {
         const invitationDocRef = window.firebaseModules.doc(db, 'invitations', invitationId);
+        
+        // Use arrayUnion to safely append without race conditions
         await window.firebaseModules.updateDoc(invitationDocRef, {
-            rsvpSubmitted: true,
-            guestNames: guestNames,
-            additionalNotes: additionalNotes,
-            status: guestNames.length > 0 ? 'confirmed' : 'declined',
-            rsvpDate: new Date().toISOString()
+            rsvps: window.firebaseModules.arrayUnion(rsvpEntry),
+            rsvpSubmitted: true // Keep for backwards compatibility
         });
 
         // Show success message
@@ -321,7 +324,8 @@ rsvpForm.addEventListener('submit', async (e) => {
         successSection.style.display = 'block';
         
         if (guestNames.length > 0) {
-            successMessage.textContent = `We're excited to celebrate with you, ${guestNames.join(' and ')}!`;
+            // Escape familyName for XSS protection (defense in depth)
+            successMessage.textContent = `We're excited to celebrate with ${escapeHtml(familyName)}!`;
         } else {
             successMessage.textContent = 'Thank you for letting us know. We\'ll miss you!';
         }
