@@ -257,18 +257,17 @@ rsvpForm.addEventListener('submit', async (e) => {
 
     const attending = document.querySelector('input[name="attending"]:checked').value;
     
-    let familyName = '';
+    // Validate family name (required for both attending and declining)
+    const familyName = familyNameInput.value.trim();
+    if (!familyName || familyName.length < 1 || familyName.length > 100) {
+        alert('Family/Group name must be between 1 and 100 characters');
+        return;
+    }
+    
     let guestNames = [];
     let additionalNotes = '';
 
     if (attending === 'yes') {
-        // Validate family name
-        familyName = familyNameInput.value.trim();
-        if (!familyName || familyName.length < 1 || familyName.length > 100) {
-            alert('Family/Group name must be between 1 and 100 characters');
-            return;
-        }
-        
         const numGuests = parseInt(numGuestsSelect.value);
         
         if (!numGuests) {
