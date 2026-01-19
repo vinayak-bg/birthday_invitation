@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Birthday Invitation - Admin</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+</head>
+<body>
+    <div id="app">
+        <nav class="navbar">
+            <div class="container">
+                <h1 class="logo">🎂 Birthday Invitation Manager</h1>
+                <div id="auth-section">
+                    <button id="login-btn" class="btn btn-primary">Admin Login</button>
+                    <button id="logout-btn" class="btn btn-secondary" style="display: none;">Logout</button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Login Modal -->
+        <div id="login-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Admin Login</h2>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                    <p class="form-note">First time? Use any email/password to create an account.</p>
+                </form>
+                <div id="recaptcha-container"></div>
+            </div>
+        </div>
+
+        <main class="container">
+            <!-- Landing Page (Public) -->
+            <section id="landing-section">
+                <div class="hero">
+                    <h1>🎉 Birthday Invitation System</h1>
+                    <p class="subtitle">Create beautiful birthday invitations and track RSVPs effortlessly</p>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <div class="feature-icon">📧</div>
+                            <h3>Custom Invitations</h3>
+                            <p>Add personal messages and invitation images</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🔗</div>
+                            <h3>Shareable Links</h3>
+                            <p>Generate unique RSVP links with guest limits</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">📊</div>
+                            <h3>Track RSVPs</h3>
+                            <p>Monitor who's attending in real-time</p>
+                        </div>
+                    </div>
+                    <button id="get-started-btn" class="btn btn-large btn-primary">Get Started</button>
+                </div>
+            </section>
+
+            <!-- Admin Dashboard (Protected) -->
+            <section id="admin-section" style="display: none;">
+                <div class="dashboard">
+                    <h2>Admin Dashboard</h2>
+                    
+                    <!-- Event Setup -->
+                    <div class="card">
+                        <h3>Event Configuration</h3>
+                        <form id="event-form">
+                            <div class="form-group">
+                                <label for="event-name">Event Name</label>
+                                <input type="text" id="event-name" placeholder="John's 30th Birthday" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="event-date">Event Date</label>
+                                <input type="date" id="event-date" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="event-message">Custom Message</label>
+                                <textarea id="event-message" rows="3" placeholder="You're invited to celebrate..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="invitation-image">Invitation Image URL</label>
+                                <input type="url" id="invitation-image" placeholder="https://example.com/invitation.jpg">
+                                <small>Optional: URL to your invitation image</small>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Event Details</button>
+                        </form>
+                    </div>
+
+                    <!-- Create Invitation Link -->
+                    <div class="card">
+                        <h3>Create Invitation Link</h3>
+                        <form id="link-form">
+                            <div class="form-group">
+                                <label for="recipient-name">Recipient Name/Group</label>
+                                <input type="text" id="recipient-name" placeholder="Smith Family" maxlength="100" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="max-guests">Maximum Guests Allowed</label>
+                                <input type="number" id="max-guests" min="1" max="50" value="2" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Generate Link</button>
+                        </form>
+                        
+                        <div id="generated-link" style="display: none;" class="generated-link">
+                            <h4>🎉 Link Generated!</h4>
+                            <div class="link-container">
+                                <input type="text" id="link-url" readonly>
+                                <button id="copy-link-btn" class="btn btn-secondary">Copy</button>
+                            </div>
+                            <p class="success-message">Share this link with your guests!</p>
+                        </div>
+                    </div>
+
+                    <!-- RSVP Tracking -->
+                    <div class="card">
+                        <h3>RSVP Tracking</h3>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value" id="total-links">0</div>
+                                <div class="stat-label">Links Created</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="total-rsvps">0</div>
+                                <div class="stat-label">Total RSVPs</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="total-guests">0</div>
+                                <div class="stat-label">Total Guests</div>
+                            </div>
+                        </div>
+                        
+                        <div class="table-container">
+                            <table id="rsvp-table">
+                                <thead>
+                                    <tr>
+                                        <th>Recipient</th>
+                                        <th>Status</th>
+                                        <th>Guests</th>
+                                        <th>Guest Names</th>
+                                        <th>Max Allowed</th>
+                                        <th>Link</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rsvp-tbody">
+                                    <tr>
+                                        <td colspan="7" class="no-data">No invitation links created yet</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <p>🎂 Birthday Invitation System | Built for GitHub Pages</p>
+        </div>
+    </footer>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        try {
+            const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
+            const { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+            const { getFirestore, collection, addDoc, getDocs, query, where, orderBy, onSnapshot, doc, setDoc, getDoc, updateDoc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            
+            window.firebaseModules = { 
+                initializeApp, 
+                getAuth, 
+                signInWithEmailAndPassword, 
+                createUserWithEmailAndPassword, 
+                onAuthStateChanged, 
+                signOut,
+                getFirestore,
+                collection,
+                addDoc,
+                getDocs,
+                query,
+                where,
+                orderBy,
+                onSnapshot,
+                doc,
+                setDoc,
+                getDoc,
+                updateDoc,
+                deleteDoc
+            };
+            console.log('Firebase modules loaded successfully');
+            // Trigger custom event to notify app.js that Firebase is ready
+            window.dispatchEvent(new Event('firebaseReady'));
+        } catch (error) {
+            console.error('Failed to load Firebase modules:', error);
+            alert('Failed to load Firebase modules. Please check your internet connection and try again.\n\nError: ' + error.message);
+        }
+    </script>
+    <script src="app.js" defer></script>
+</body>
+</html>

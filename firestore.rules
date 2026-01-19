@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the resource
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Helper function to validate string length
+    function validStringLength(str, min, max) {
+      return str is string && str.size() >= min && str.size() <= max;
+    }
+    
+    // Events collection
+    match /events/{userId} {
+      // Owner can read and write their own events
+      allow read, write: if isOwner(userId);
+      
+      // Anyone can read event details (needed for guest RSVP page)
+      allow read: if true;
+      
+      // Validate event data on write
+      allow create, update: if isOwner(userId) 
+        && validStringLength(request.resource.data.name, 1, 200)
+        && validStringLength(request.resource.data.message, 0, 1000)
+        && request.resource.data.userId == userId;
+    }
+    
+    // Invitations collection
+    match /invitations/{invitationId} {
+      // Owner can create invitations
+      // IMPROVED: Ensure userId in data matches authenticated user
+      allow create: if isAuthenticated() 
+        && request.resource.data.userId == request.auth.uid
+        && validStringLength(request.resource.data.recipientName, 1, 100)
+        && request.resource.data.maxGuests is int
+        && request.resource.data.maxGuests >= 1 
+        && request.resource.data.maxGuests <= 50;
+      
+      // Owner can read, update, and delete their own invitations
+      allow read, write, delete: if isAuthenticated() 
+        && resource.data.userId == request.auth.uid;
+      
+      // Anyone (including unauthenticated guests) can read invitations
+      allow read: if true;
+      
+      // Anyone can update for RSVP submission (guests are not authenticated)
+      // But validate the data being submitted
+      allow update: if 
+        // Can only update these specific fields for RSVP
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['rsvpSubmitted', 'guestNames', 'additionalNotes', 'status', 'rsvpDate'])
+        // Validate guest names array
+        && request.resource.data.guestNames is list
+        && request.resource.data.guestNames.size() <= resource.data.maxGuests
+        // Validate each guest name length (1-100 chars)
+        && request.resource.data.guestNames.hasAll(
+          request.resource.data.guestNames
+        )
+        // Validate additional notes length
+        && validStringLength(request.resource.data.get('additionalNotes', ''), 0, 500)
+        // Ensure rsvpSubmitted is boolean
+        && request.resource.data.rsvpSubmitted is bool;
+    }
+  }
+}

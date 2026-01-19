@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Birthday Invitation - RSVP</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎉</text></svg>">
+</head>
+<body>
+    <div id="app">
+        <nav class="navbar">
+            <div class="container">
+                <h1 class="logo">🎉 You're Invited!</h1>
+            </div>
+        </nav>
+
+        <main class="container">
+            <!-- Loading State -->
+            <div id="loading-section" class="loading-container">
+                <div class="spinner"></div>
+                <p>Loading invitation...</p>
+            </div>
+
+            <!-- Invalid Link -->
+            <div id="invalid-section" class="error-container" style="display: none;">
+                <div class="error-icon">❌</div>
+                <h2>Invalid Invitation Link</h2>
+                <p>This invitation link is not valid or has expired.</p>
+            </div>
+
+            <!-- RSVP Form -->
+            <section id="rsvp-section" style="display: none;">
+                <div class="invitation-card">
+                    <!-- Invitation Image -->
+                    <div id="invitation-image-container" class="invitation-image" style="display: none;">
+                        <img id="invitation-image" src="" alt="Birthday Invitation">
+                    </div>
+
+                    <!-- Event Details -->
+                    <div class="invitation-content">
+                        <h1 id="event-name">Birthday Celebration</h1>
+                        <div class="event-details">
+                            <div class="event-detail-item">
+                                <span class="icon">📅</span>
+                                <span id="event-date">Date to be announced</span>
+                            </div>
+                            <div class="event-detail-item">
+                                <span class="icon">👥</span>
+                                <span id="recipient-name">Special Guest</span>
+                            </div>
+                        </div>
+                        <p id="event-message" class="event-message"></p>
+                    </div>
+
+                    <!-- RSVP Status -->
+                    <div id="rsvp-status-section" style="display: none;">
+                        <div class="rsvp-status">
+                            <h3>✅ RSVP Confirmed!</h3>
+                            <p>Thank you for confirming your attendance.</p>
+                            <div id="confirmed-guests"></div>
+                        </div>
+                    </div>
+
+                    <!-- RSVP Form -->
+                    <div id="rsvp-form-section" class="rsvp-form-container">
+                        <h2>RSVP</h2>
+                        <p class="rsvp-subtitle">Please let us know if you can make it!</p>
+                        
+                        <form id="rsvp-form">
+                            <div class="form-group">
+                                <label>Will you attend?</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="attending" value="yes" required>
+                                        <span>✅ Yes, I'll be there!</span>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="attending" value="no">
+                                        <span>❌ Sorry, can't make it</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="guest-details-section" style="display: none;">
+                                <div class="form-group">
+                                    <label for="num-guests">Number of Guests</label>
+                                    <select id="num-guests" required>
+                                        <option value="">Select number of guests</option>
+                                    </select>
+                                    <small id="max-guests-note"></small>
+                                </div>
+
+                                <div id="guest-names-container"></div>
+
+                                <div class="form-group">
+                                    <label for="additional-notes">Special Notes (optional)</label>
+                                    <textarea id="additional-notes" rows="3" maxlength="500" placeholder="Dietary restrictions, song requests, etc."></textarea>
+                                    <small>Maximum 500 characters</small>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-large">Submit RSVP</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Success Message -->
+            <div id="success-section" class="success-container" style="display: none;">
+                <div class="success-icon">🎉</div>
+                <h2>RSVP Submitted!</h2>
+                <p id="success-message">Thank you for your response!</p>
+            </div>
+        </main>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <p>🎂 See you at the party!</p>
+        </div>
+    </footer>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        try {
+            const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
+            const { getFirestore, doc, getDoc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            
+            window.firebaseModules = { 
+                initializeApp,
+                getFirestore,
+                doc,
+                getDoc,
+                updateDoc
+            };
+            console.log('Firebase modules loaded successfully');
+            window.dispatchEvent(new Event('firebaseReady'));
+        } catch (error) {
+            console.error('Failed to load Firebase modules:', error);
+        }
+    </script>
+    <script src="rsvp.js" defer></script>
+</body>
+</html>
