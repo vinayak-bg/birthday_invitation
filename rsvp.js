@@ -139,17 +139,24 @@ function displayInvitation() {
     if (eventData) {
         eventNameEl.textContent = eventData.name || 'Birthday Celebration';
         
-        if (eventData.date) {
+        if (eventData.date && typeof eventData.date === 'string' && eventData.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
             // Parse date as local date to avoid timezone issues
             // eventData.date is in format "YYYY-MM-DD"
-            const [year, month, day] = eventData.date.split('-');
-            const date = new Date(year, month - 1, day); // month is 0-indexed
-            eventDateEl.textContent = date.toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-            });
+            try {
+                const [year, month, day] = eventData.date.split('-');
+                const date = new Date(year, month - 1, day); // month is 0-indexed
+                eventDateEl.textContent = date.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+            } catch (error) {
+                console.error('Error parsing date:', error);
+                eventDateEl.textContent = 'Date to be announced';
+            }
+        } else {
+            eventDateEl.textContent = 'Date to be announced';
         }
         
         if (eventData.message) {
@@ -304,19 +311,13 @@ rsvpForm.addEventListener('submit', async (e) => {
         rsvpDate: new Date().toISOString()
     };
 
-    // Append to rsvps array in the invitation document
+    // Append to rsvps array in the invitation document using arrayUnion to prevent race conditions
     try {
         const invitationDocRef = window.firebaseModules.doc(db, 'invitations', invitationId);
         
-        // Get current rsvps array
-        const invitationSnap = await window.firebaseModules.getDoc(invitationDocRef);
-        const currentRsvps = invitationSnap.data().rsvps || [];
-        
-        // Add new RSVP
-        currentRsvps.push(rsvpEntry);
-        
+        // Use arrayUnion to safely append without race conditions
         await window.firebaseModules.updateDoc(invitationDocRef, {
-            rsvps: currentRsvps,
+            rsvps: window.firebaseModules.arrayUnion(rsvpEntry),
             rsvpSubmitted: true // Keep for backwards compatibility
         });
 
@@ -325,7 +326,8 @@ rsvpForm.addEventListener('submit', async (e) => {
         successSection.style.display = 'block';
         
         if (guestNames.length > 0) {
-            successMessage.textContent = `We're excited to celebrate with ${familyName}!`;
+            // Escape familyName for XSS protection (defense in depth)
+            successMessage.textContent = `We're excited to celebrate with ${escapeHtml(familyName)}!`;
         } else {
             successMessage.textContent = 'Thank you for letting us know. We\'ll miss you!';
         }

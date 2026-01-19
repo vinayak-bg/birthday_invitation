@@ -236,12 +236,11 @@ MIT License - Feel free to use for your own events!
 
 ## 🎈 Credits
 
-Built with vanilla JavaScript, Firebase, and love! Perfect for making birthday parties more organized and fun.**Solutions**:
-1. Verify Firestore rules include: `allow read, update: if true;` for invitations
-2. Check Firebase Console → Firestore → Rules and re-publish them
-3. Make sure events collection also has: `allow read: if true;`
+Built with vanilla JavaScript, Firebase, and love! Perfect for making birthday parties more organized and fun.
 
-### Problem: GitHub Pages shows 404 error
+---
+
+*Last Updated: January 19, 2026*
 
 **Solutions**:
 1. Wait 2-3 minutes after enabling GitHub Pages

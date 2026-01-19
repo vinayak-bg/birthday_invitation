@@ -267,16 +267,24 @@ async function loadEvents() {
             events.push({ id: doc.id, ...doc.data() });
         });
         
-        // Sort by createdAt in JavaScript instead
-        events.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        // Sort by createdAt in JavaScript - handle missing createdAt with fallback to 0
+        events.sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA;
+        });
         
         // Display events
         eventsListContainer.innerHTML = events.map(event => {
-            const date = new Date(event.date).toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric', 
-                year: 'numeric' 
-            });
+            let date = 'Date TBD';
+            if (event.date && typeof event.date === 'string' && event.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                const [year, month, day] = event.date.split('-');
+                date = new Date(year, month - 1, day).toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric', 
+                    year: 'numeric' 
+                });
+            }
             const isSelected = selectedEventId === event.id;
             
             return `
