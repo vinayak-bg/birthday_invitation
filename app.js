@@ -36,7 +36,6 @@ function initializeFirebase() {
         app = window.firebaseModules.initializeApp(firebaseConfig);
         auth = window.firebaseModules.getAuth(app);
         db = window.firebaseModules.getFirestore(app);
-        console.log('Firebase initialized successfully');
         
         // Set up auth state observer
         setupAuthObserver();
@@ -464,12 +463,7 @@ function generateLinkId() {
 let invitationsUnsubscribe = null;
 
 async function loadInvitations() {
-    console.log('=== loadInvitations called ===');
-    console.log('currentUser:', currentUser?.uid);
-    console.log('selectedEventId:', selectedEventId);
-    
     if (!currentUser || !selectedEventId) {
-        console.log('Missing user or event, showing placeholder');
         rsvpTbody.innerHTML = '<tr><td colspan="7" class="no-data">Please select an event first</td></tr>';
         totalLinksEl.textContent = '0';
         totalRsvpsEl.textContent = '0';
@@ -484,7 +478,6 @@ async function loadInvitations() {
     }
 
     try {
-        console.log('Setting up invitations query for eventId:', selectedEventId);
         const invitationsQuery = window.firebaseModules.query(
             window.firebaseModules.collection(db, 'invitations'),
             window.firebaseModules.where('eventId', '==', selectedEventId)
@@ -492,9 +485,6 @@ async function loadInvitations() {
 
         // Set up real-time listener
         invitationsUnsubscribe = window.firebaseModules.onSnapshot(invitationsQuery, (snapshot) => {
-                console.log('=== Invitations snapshot received ===');
-                console.log('Snapshot size:', snapshot.size);
-                
                 let totalLinks = 0;
                 let totalRsvps = 0;
                 let totalGuests = 0;
@@ -502,13 +492,11 @@ async function loadInvitations() {
 
                 snapshot.forEach((doc) => {
                     const data = doc.data();
-                    console.log('Invitation doc:', doc.id, data);
                     invitations.push(data);
                     totalLinks++;
                     
                     // Count RSVPs from the rsvps array
                     const rsvps = data.rsvps || [];
-                    console.log('RSVPs for this link:', rsvps);
                     totalRsvps += rsvps.length;
                     
                     // Count total confirmed guests
@@ -521,8 +509,6 @@ async function loadInvitations() {
                 
                 // Sort by createdAt in JavaScript
                 invitations.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                
-                console.log('Final counts - Links:', totalLinks, 'RSVPs:', totalRsvps, 'Guests:', totalGuests);
 
                 // Update stats
                 totalLinksEl.textContent = totalLinks;

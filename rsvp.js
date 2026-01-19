@@ -28,10 +28,6 @@ const invitationId = urlParams.get('id');
 
 // Function to initialize Firebase
 function initializeFirebase() {
-    console.log('Initializing Firebase...');
-    console.log('Firebase modules available:', !!window.firebaseModules);
-    console.log('Invitation ID:', invitationId);
-    
     if (!window.firebaseModules) {
         console.error('Firebase modules not loaded');
         showInvalid();
@@ -41,14 +37,11 @@ function initializeFirebase() {
     try {
         app = window.firebaseModules.initializeApp(firebaseConfig);
         db = window.firebaseModules.getFirestore(app);
-        console.log('Firebase initialized successfully', { app, db });
         
         // Start loading invitation
         if (invitationId) {
-            console.log('Starting to load invitation...');
             setTimeout(() => loadInvitation(), 100); // Small delay to ensure DB is ready
         } else {
-            console.error('No invitation ID in URL');
             showInvalid();
         }
         return true;
@@ -100,57 +93,39 @@ let eventData = null;
 // Note: invitationId is declared at the top of the file, loadInvitation will be called after Firebase initializes
 
 async function loadInvitation() {
-    console.log('=== Starting loadInvitation ===');
-    console.log('DB object:', db);
-    console.log('Invitation ID:', invitationId);
-    console.log('Firebase modules:', window.firebaseModules);
-    
     try {
         // Load invitation data
-        console.log('Creating doc reference...');
         const invitationDocRef = window.firebaseModules.doc(db, 'invitations', invitationId);
-        console.log('Doc reference created:', invitationDocRef);
-        
-        console.log('Fetching document...');
         const invitationDoc = await window.firebaseModules.getDoc(invitationDocRef);
-        console.log('Document fetched. Exists:', invitationDoc.exists);
         
         if (!invitationDoc.exists) {
-            console.error('Invitation document does not exist');
             showInvalid();
             return;
         }
 
         invitationData = invitationDoc.data();
-        console.log('Invitation data loaded:', invitationData);
         
         // Load event data using eventId from invitation
         if (!invitationData.eventId) {
-            console.error('No eventId in invitation data');
             showInvalid();
             return;
         }
         
-        console.log('Loading event data for eventId:', invitationData.eventId);
         const eventDocRef = window.firebaseModules.doc(db, 'events', invitationData.eventId);
         const eventDoc = await window.firebaseModules.getDoc(eventDocRef);
         
         if (eventDoc.exists) {
             eventData = eventDoc.data();
-            console.log('Event data loaded:', eventData);
         } else {
-            console.log('No event data found');
             showInvalid();
             return;
         }
 
         // Display invitation
-        console.log('Displaying invitation...');
         displayInvitation();
         
     } catch (error) {
         console.error('Error in loadInvitation:', error);
-        console.error('Error details:', error.message, error.code);
         alert('Error loading invitation: ' + error.message);
         showInvalid();
     }
