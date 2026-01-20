@@ -62,7 +62,7 @@ function generateCalendarFile(eventData) {
     
     // Clean and format description
     const eventName = eventData.name || 'Birthday Celebration';
-    const description = eventData.message ? eventData.message.replace(/\n/g, '\\n') : 'You\\'re invited to celebrate!';
+    const description = eventData.message ? eventData.message.replace(/\n/g, '\\n') : "You're invited to celebrate!";
     const location = eventData.venue ? eventData.venue.replace(/\n/g, '\\n') : '';
     
     // Generate unique ID for the event
