@@ -77,8 +77,6 @@ const cancelEventBtn = document.getElementById('cancel-event-btn');
 const eventsListContainer = document.getElementById('events-list-container');
 const eventNameInput = document.getElementById('event-name');
 const eventDateInput = document.getElementById('event-date');
-const eventTimeInput = document.getElementById('event-time');
-const eventVenueInput = document.getElementById('event-venue');
 const eventMessageInput = document.getElementById('event-message');
 const invitationImageInput = document.getElementById('invitation-image');
 
@@ -217,8 +215,6 @@ eventForm.addEventListener('submit', async (e) => {
         userId: currentUser.uid,
         name: eventNameInput.value,
         date: eventDateInput.value,
-        time: eventTimeInput.value || null,
-        venue: eventVenueInput.value || null,
         message: eventMessageInput.value,
         imageUrl: invitationImageInput.value,
         createdAt: isEditingEvent ? undefined : new Date().toISOString(),
@@ -362,8 +358,6 @@ function editEvent(eventId, events) {
     
     eventNameInput.value = event.name || '';
     eventDateInput.value = event.date || '';
-    eventTimeInput.value = event.time || '';
-    eventVenueInput.value = event.venue || '';
     eventMessageInput.value = event.message || '';
     invitationImageInput.value = event.imageUrl || '';
     

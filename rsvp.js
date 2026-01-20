@@ -23,87 +23,7 @@ function escapeHtml(unsafe) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }
-// Generate .ics calendar file for download
-function generateCalendarFile(eventData) {
-    if (!eventData || !eventData.date) {
-        alert('Event date is not available for calendar download.');
-        return;
-    }
 
-    // Parse the date (YYYY-MM-DD format)
-    const [year, month, day] = eventData.date.split('-');
-    
-    // Get time from eventData or use default 6:00 PM (backwards compatible)
-    let startHour = 18, startMinute = 0;
-    if (eventData.time) {
-        try {
-            const [hours, minutes] = eventData.time.split(':');
-            startHour = parseInt(hours);
-            startMinute = parseInt(minutes);
-        } catch (error) {
-            console.error('Error parsing event time:', error);
-        }
-    }
-    
-    // Create date for calendar (use actual time or default to 6:00 PM)
-    const eventDate = new Date(year, month - 1, day, startHour, startMinute, 0);
-    // End time is 5 hours after start (or 11 PM if using default)
-    const eventEndDate = new Date(year, month - 1, day, startHour + 5, startMinute, 0);
-    
-    // Format dates for iCalendar format (yyyyMMddTHHmmss)
-    const formatICSDate = (date) => {
-        const pad = (num) => String(num).padStart(2, '0');
-        return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
-    };
-    
-    const dtStart = formatICSDate(eventDate);
-    const dtEnd = formatICSDate(eventEndDate);
-    const dtStamp = formatICSDate(new Date());
-    
-    // Clean and format description
-    const eventName = eventData.name || 'Birthday Celebration';
-    const description = eventData.message ? eventData.message.replace(/\n/g, '\\n') : 'You\\'re invited to celebrate!';
-    const location = eventData.venue ? eventData.venue.replace(/\n/g, '\\n') : '';
-    
-    // Generate unique ID for the event
-    const uid = `${dtStamp}-${Math.random().toString(36).substring(2, 9)}@birthday-invitation`;
-    
-    // Create .ics file content
-    const icsContent = [
-        'BEGIN:VCALENDAR',
-        'VERSION:2.0',
-        'PRODID:-//Birthday Invitation//NONSGML Event Calendar//EN',
-        'CALSCALE:GREGORIAN',
-        'METHOD:PUBLISH',
-        'BEGIN:VEVENT',
-        `UID:${uid}`,
-        `DTSTAMP:${dtStamp}`,
-        `DTSTART:${dtStart}`,
-        `DTEND:${dtEnd}`,
-        `SUMMARY:${eventName}`,
-        `DESCRIPTION:${description}`,
-        location ? `LOCATION:${location}` : null,
-        'STATUS:CONFIRMED',
-        'SEQUENCE:0',
-        'BEGIN:VALARM',
-        'TRIGGER:-PT24H',
-        'ACTION:DISPLAY',
-        'DESCRIPTION:Reminder: Birthday celebration tomorrow!',
-        'END:VALARM',
-        'END:VEVENT',
-        'END:VCALENDAR'
-    ].filter(line => line !== null).join('\r\n');
-    
-    // Create blob and download
-    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${eventName.replace(/[^a-z0-9]/gi, '_')}.ics`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(link.href);
-}
 // Get invitation ID from URL - must be declared early
 const urlParams = new URLSearchParams(window.location.search);
 const invitationId = urlParams.get('id');
@@ -153,10 +73,6 @@ const successSection = document.getElementById('success-section');
 // Event Details
 const eventNameEl = document.getElementById('event-name');
 const eventDateEl = document.getElementById('event-date');
-const eventTimeEl = document.getElementById('event-time');
-const eventTimeContainer = document.getElementById('event-time-container');
-const eventVenueEl = document.getElementById('event-venue');
-const eventVenueContainer = document.getElementById('event-venue-container');
 const eventMessageEl = document.getElementById('event-message');
 const invitationImageContainer = document.getElementById('invitation-image-container');
 const invitationImage = document.getElementById('invitation-image');
@@ -245,30 +161,6 @@ function displayInvitation() {
             eventDateEl.textContent = 'Date to be announced';
         }
         
-        // Display time if available (backwards compatible)
-        if (eventData.time) {
-            try {
-                // Parse time (HH:MM format)
-                const [hours, minutes] = eventData.time.split(':');
-                const timeDate = new Date();
-                timeDate.setHours(parseInt(hours), parseInt(minutes));
-                eventTimeEl.textContent = timeDate.toLocaleTimeString('en-US', { 
-                    hour: 'numeric', 
-                    minute: '2-digit',
-                    hour12: true 
-                });
-                eventTimeContainer.style.display = 'flex';
-            } catch (error) {
-                console.error('Error parsing time:', error);
-            }
-        }
-        
-        // Display venue if available (backwards compatible)
-        if (eventData.venue) {
-            eventVenueEl.textContent = escapeHtml(eventData.venue);
-            eventVenueContainer.style.display = 'flex';
-        }
-        
         if (eventData.message) {
             // Escape HTML but preserve newlines by converting to <br>
             const escapedMessage = escapeHtml(eventData.message).replace(/\n/g, '<br>');
@@ -281,14 +173,6 @@ function displayInvitation() {
         }
     }
 
-    // Set up calendar download button
-    const downloadCalendarBtn = document.getElementById('download-calendar-btn');
-    if (downloadCalendarBtn && eventData) {
-        downloadCalendarBtn.addEventListener('click', () => {
-            generateCalendarFile(eventData);
-        });
-    }
-    
     // Always show RSVP form (multiple people can RSVP with same link)
     setupRsvpForm();
 }
