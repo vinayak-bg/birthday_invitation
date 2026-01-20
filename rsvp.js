@@ -45,10 +45,21 @@ function generateCalendarFile(eventData) {
         }
     }
     
+    // Get end time or calculate as start + 5 hours (backwards compatible)
+    let endHour = startHour + 5, endMinute = startMinute;
+    if (eventData.endTime) {
+        try {
+            const [hours, minutes] = eventData.endTime.split(':');
+            endHour = parseInt(hours);
+            endMinute = parseInt(minutes);
+        } catch (error) {
+            console.error('Error parsing event end time:', error);
+        }
+    }
+    
     // Create date for calendar (use actual time or default to 6:00 PM)
     const eventDate = new Date(year, month - 1, day, startHour, startMinute, 0);
-    // End time is 5 hours after start (or 11 PM if using default)
-    const eventEndDate = new Date(year, month - 1, day, startHour + 5, startMinute, 0);
+    const eventEndDate = new Date(year, month - 1, day, endHour, endMinute, 0);
     
     // Format dates for iCalendar format (yyyyMMddTHHmmss)
     const formatICSDate = (date) => {
@@ -248,15 +259,30 @@ function displayInvitation() {
         // Display time if available (backwards compatible)
         if (eventData.time) {
             try {
-                // Parse time (HH:MM format)
+                // Parse start time (HH:MM format)
                 const [hours, minutes] = eventData.time.split(':');
-                const timeDate = new Date();
-                timeDate.setHours(parseInt(hours), parseInt(minutes));
-                eventTimeEl.textContent = timeDate.toLocaleTimeString('en-US', { 
+                const startTime = new Date();
+                startTime.setHours(parseInt(hours), parseInt(minutes));
+                
+                let timeText = startTime.toLocaleTimeString('en-US', { 
                     hour: 'numeric', 
                     minute: '2-digit',
                     hour12: true 
                 });
+                
+                // Add end time if available
+                if (eventData.endTime) {
+                    const [endHours, endMinutes] = eventData.endTime.split(':');
+                    const endTime = new Date();
+                    endTime.setHours(parseInt(endHours), parseInt(endMinutes));
+                    timeText += ' - ' + endTime.toLocaleTimeString('en-US', { 
+                        hour: 'numeric', 
+                        minute: '2-digit',
+                        hour12: true 
+                    });
+                }
+                
+                eventTimeEl.textContent = timeText;
                 eventTimeContainer.style.display = 'flex';
             } catch (error) {
                 console.error('Error parsing time:', error);

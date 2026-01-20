@@ -11,6 +11,7 @@ describe('Integration Tests', () => {
       name: "John's Birthday",
       date: '2026-03-15',
       time: '18:00',
+      endTime: '23:00',
       venue: 'The Garden Restaurant',
       message: 'Come celebrate!',
       imageUrl: 'https://example.com/image.jpg',
@@ -160,12 +161,13 @@ describe('Integration Tests', () => {
   });
 
   describe('Event Creation and Editing', () => {
-    test('should create new event with all fields', () => {
+    test('should create new event with all fields including end time', () => {
       const eventData = {
         userId: 'user123',
         name: "Sarah's Birthday",
         date: '2026-05-20',
         time: '19:00',
+        endTime: '23:30',
         venue: 'Central Park',
         message: 'Outdoor celebration!',
         imageUrl: 'https://example.com/party.jpg',
@@ -175,18 +177,21 @@ describe('Integration Tests', () => {
 
       expect(eventData.name).toBe("Sarah's Birthday");
       expect(eventData.time).toBe('19:00');
+      expect(eventData.endTime).toBe('23:30');
       expect(eventData.venue).toBe('Central Park');
     });
 
-    test('should update existing event', () => {
+    test('should update existing event with new end time', () => {
       const updatedEvent = {
         ...mockEvent,
         time: '20:00',
+        endTime: '01:00',
         venue: 'New Venue',
         updatedAt: new Date().toISOString()
       };
 
       expect(updatedEvent.time).toBe('20:00');
+      expect(updatedEvent.endTime).toBe('01:00');
       expect(updatedEvent.venue).toBe('New Venue');
       expect(updatedEvent.name).toBe(mockEvent.name); // Unchanged
     });
@@ -212,13 +217,14 @@ describe('Integration Tests', () => {
   });
 
   describe('Calendar File Generation Integration', () => {
-    test('should generate complete calendar file with all event details', () => {
+    test('should generate complete calendar file with all event details including end time', () => {
       const eventData = mockEvent;
       const [year, month, day] = eventData.date.split('-');
       const [hours, minutes] = eventData.time.split(':');
+      const [endHours, endMinutes] = eventData.endTime.split(':');
       
       const eventDate = new Date(year, month - 1, day, parseInt(hours), parseInt(minutes));
-      const eventEndDate = new Date(year, month - 1, day, parseInt(hours) + 5, parseInt(minutes));
+      const eventEndDate = new Date(year, month - 1, day, parseInt(endHours), parseInt(endMinutes));
 
       expect(eventDate.getFullYear()).toBe(2026);
       expect(eventDate.getMonth()).toBe(2); // March
@@ -227,7 +233,16 @@ describe('Integration Tests', () => {
       expect(eventEndDate.getHours()).toBe(23);
     });
 
-    test('should handle event without time (use default)', () => {
+    test('should calculate end time as start + 5 hours when endTime not provided', () => {
+      const eventData = { ...mockEvent, endTime: null };
+      const [hours, minutes] = eventData.time.split(':');
+      const startHour = parseInt(hours);
+      const defaultEndHour = startHour + 5;
+      
+      expect(defaultEndHour).toBe(23);
+    });
+
+    test('should handle event without time (use defaults)', () => {
       const eventData = { ...mockEvent, time: null };
       
       const defaultHour = 18;

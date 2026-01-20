@@ -81,6 +81,35 @@ describe('Calendar File Generation', () => {
     expect(parseInt(minutes)).toBe(30);
   });
 
+  test('should format event end time correctly', () => {
+    const eventEndTime = '23:00';
+    const [hours, minutes] = eventEndTime.split(':');
+    expect(parseInt(hours)).toBe(23);
+    expect(parseInt(minutes)).toBe(0);
+  });
+
+  test('should calculate default end time (start + 5 hours)', () => {
+    const startHour = 18;
+    const startMinute = 30;
+    const endHour = startHour + 5;
+    const endMinute = startMinute;
+    expect(endHour).toBe(23);
+    expect(endMinute).toBe(30);
+  });
+
+  test('should use actual end time when provided', () => {
+    const eventData = {
+      time: '18:00',
+      endTime: '22:00'
+    };
+    
+    const [startHours, startMinutes] = eventData.time.split(':');
+    const [endHours, endMinutes] = eventData.endTime.split(':');
+    
+    expect(parseInt(endHours)).toBe(22);
+    expect(parseInt(endMinutes)).toBe(0);
+  });
+
   test('should calculate event end time (5 hours later)', () => {
     const startHour = 18;
     const startMinute = 30;
@@ -273,6 +302,19 @@ describe('Input Validation', () => {
     const validMessage = 'You are invited to celebrate!';
     expect(validMessage.length).toBeLessThanOrEqual(1000);
   });
+
+  test('should parse time in HH:MM format for start and end', () => {
+    const startTime = '18:00';
+    const endTime = '23:00';
+    
+    const [startH, startM] = startTime.split(':');
+    const [endH, endM] = endTime.split(':');
+    
+    expect(parseInt(startH)).toBe(18);
+    expect(parseInt(startM)).toBe(0);
+    expect(parseInt(endH)).toBe(23);
+    expect(parseInt(endM)).toBe(0);
+  });
 });
 
 describe('Link ID Generation', () => {
@@ -342,6 +384,7 @@ describe('Event Data Structure', () => {
       name: "John's Birthday",
       date: '2026-03-15',
       time: '18:00',
+      endTime: '23:00',
       venue: 'The Garden Restaurant',
       message: 'Come celebrate!',
       imageUrl: 'https://example.com/image.jpg',
@@ -353,23 +396,40 @@ describe('Event Data Structure', () => {
     expect(eventData).toHaveProperty('name');
     expect(eventData).toHaveProperty('date');
     expect(eventData).toHaveProperty('time');
+    expect(eventData).toHaveProperty('endTime');
     expect(eventData).toHaveProperty('venue');
     expect(eventData.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(eventData.time).toMatch(/^\d{2}:\d{2}$/);
+    expect(eventData.endTime).toMatch(/^\d{2}:\d{2}$/);
   });
 
-  test('should handle optional fields (time and venue)', () => {
+  test('should handle optional fields (time, endTime and venue)', () => {
     const eventData = {
       userId: 'test-user-123',
       name: "John's Birthday",
       date: '2026-03-15',
       time: null,
+      endTime: null,
       venue: null,
       message: '',
       imageUrl: ''
     };
 
     expect(eventData.time).toBeNull();
+    expect(eventData.endTime).toBeNull();
     expect(eventData.venue).toBeNull();
+  });
+
+  test('should handle event with start time but no end time', () => {
+    const eventData = {
+      name: "John's Birthday",
+      date: '2026-03-15',
+      time: '18:00',
+      endTime: null
+    };
+
+    expect(eventData.time).toBe('18:00');
+    expect(eventData.endTime).toBeNull();
   });
 });
 
@@ -386,7 +446,7 @@ describe('Backwards Compatibility', () => {
     expect(guestCount).toBe(2);
   });
 
-  test('should handle old event format without time and venue', () => {
+  test('should handle old event format without time, endTime and venue', () => {
     const oldEvent = {
       name: "John's Birthday",
       date: '2026-03-15',
@@ -394,8 +454,20 @@ describe('Backwards Compatibility', () => {
     };
 
     expect(oldEvent.time).toBeUndefined();
+    expect(oldEvent.endTime).toBeUndefined();
     expect(oldEvent.venue).toBeUndefined();
     expect(oldEvent.date).toBeDefined();
+  });
+
+  test('should handle event with start time but no end time', () => {
+    const eventData = { 
+      date: '2026-03-15',
+      time: '18:00'
+    };
+    
+    const defaultEndHour = eventData.time ? parseInt(eventData.time.split(':')[0]) + 5 : 23;
+    expect(defaultEndHour).toBe(23);
+    expect(eventData.endTime).toBeUndefined();
   });
 
   test('should use default time (6 PM) when time is not available', () => {
