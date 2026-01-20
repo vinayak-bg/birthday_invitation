@@ -511,8 +511,10 @@ async function loadInvitations() {
                     
                     // Count total confirmed guests
                     rsvps.forEach(rsvp => {
-                        if (rsvp.attending && rsvp.guestNames) {
-                            totalGuests += rsvp.guestNames.length;
+                        if (rsvp.attending) {
+                            // Use numGuests if available (new format), otherwise fall back to guestNames.length (old format)
+                            const guestCount = rsvp.numGuests || rsvp.guestNames?.length || 0;
+                            totalGuests += guestCount;
                         }
                     });
                 });
@@ -546,7 +548,8 @@ async function loadInvitations() {
                         if (rsvps.length > 0) {
                             responseDetails = rsvps.map(r => {
                                 const familyName = r.familyName || 'Unknown';
-                                const guestCount = r.numGuests || 0;
+                                // Use numGuests if available (new format), otherwise fall back to guestNames.length (old format)
+                                const guestCount = r.numGuests !== undefined ? r.numGuests : (r.guestNames?.length || 0);
                                 const status = r.attending ? '✓' : '✗';
                                 const guestInfo = guestCount > 0 ? ` (${guestCount} guest${guestCount > 1 ? 's' : ''})` : '';
                                 return `${status} <strong>${escapeHtml(familyName)}</strong>${guestInfo}`;
