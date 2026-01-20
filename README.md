@@ -13,6 +13,35 @@ A modern, full-featured birthday invitation platform with RSVP tracking and mult
 - 🔒 **Secure Admin Panel**: Protected dashboard for managing events
 - ☁️ **Cloud-Based**: Uses Firebase for reliable, scalable storage
 - 🚀 **Zero Cost**: Runs on GitHub Pages and Firebase free tier
+- 📅 **Calendar Integration**: Download .ics files for iOS/Android calendars
+- 🕐 **Time & Venue**: Add event time and location details
+- ✅ **100% Test Coverage**: Comprehensive unit and integration tests
+
+## 🧪 Testing
+
+This project includes comprehensive test coverage. See [README-TESTING.md](README-TESTING.md) for details.
+
+### Quick Start
+
+```bash
+# Install dependencies (requires Node.js)
+npm install
+
+# Run all tests
+npm test
+
+# Run with coverage report
+npm run test:coverage
+```
+
+Test coverage includes:
+- ✅ XSS protection and security
+- ✅ Calendar file generation  
+- ✅ Date/time parsing and formatting
+- ✅ Guest count calculations
+- ✅ Input validation
+- ✅ RSVP workflows
+- ✅ Backwards compatibility
 
 ## 🚀 Quick Setup Guide
 

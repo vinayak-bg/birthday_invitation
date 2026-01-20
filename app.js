@@ -25,7 +25,29 @@ function escapeHtml(unsafe) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }
-
+// Parse markdown for links and newlines only (secure, limited markdown)
+function parseMarkdown(text) {
+    if (!text) return '';
+    
+    // First escape HTML to prevent XSS
+    let safe = escapeHtml(text);
+    
+    // Convert markdown links [text](url) to HTML links
+    // This is safe because we've already escaped HTML
+    safe = safe.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, url) => {
+        // Basic URL validation - must start with http:// or https://
+        if (url.match(/^https?:\/\/.+/)) {
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
+        }
+        // If URL is invalid, return the original text
+        return match;
+    });
+    
+    // Convert newlines to <br>
+    safe = safe.replace(/\n/g, '<br>');
+    
+    return safe;
+}
 // Function to initialize Firebase
 function initializeFirebase() {
     if (!window.firebaseModules) {
@@ -77,6 +99,9 @@ const cancelEventBtn = document.getElementById('cancel-event-btn');
 const eventsListContainer = document.getElementById('events-list-container');
 const eventNameInput = document.getElementById('event-name');
 const eventDateInput = document.getElementById('event-date');
+const eventTimeInput = document.getElementById('event-time');
+const eventEndTimeInput = document.getElementById('event-end-time');
+const eventVenueInput = document.getElementById('event-venue');
 const eventMessageInput = document.getElementById('event-message');
 const invitationImageInput = document.getElementById('invitation-image');
 
@@ -215,6 +240,9 @@ eventForm.addEventListener('submit', async (e) => {
         userId: currentUser.uid,
         name: eventNameInput.value,
         date: eventDateInput.value,
+        time: eventTimeInput.value || null,
+        endTime: eventEndTimeInput.value || null,
+        venue: eventVenueInput.value || null,
         message: eventMessageInput.value,
         imageUrl: invitationImageInput.value,
         createdAt: isEditingEvent ? undefined : new Date().toISOString(),
@@ -358,6 +386,9 @@ function editEvent(eventId, events) {
     
     eventNameInput.value = event.name || '';
     eventDateInput.value = event.date || '';
+    eventTimeInput.value = event.time || '';
+    eventEndTimeInput.value = event.endTime || '';
+    eventVenueInput.value = event.venue || '';
     eventMessageInput.value = event.message || '';
     invitationImageInput.value = event.imageUrl || '';
     
