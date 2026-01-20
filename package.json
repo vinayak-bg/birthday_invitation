@@ -1,0 +1,18 @@
+{
+  "name": "birthday-invitation",
+  "version": "1.0.0",
+  "description": "Birthday invitation system with RSVP tracking",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": ["birthday", "invitation", "rsvp"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  }
+}
