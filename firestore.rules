@@ -62,16 +62,23 @@ service cloud.firestore {
         && request.resource.data.rsvps is list
         // New RSVP added (array grew by 1)
         && request.resource.data.rsvps.size() == resource.data.rsvps.size() + 1
+        // CRITICAL: Prevent overwritting/deleting existing RSVPs
+        && request.resource.data.rsvps.hasAll(resource.data.rsvps)
+        
         // Validate the new RSVP entry has required fields
-        && request.resource.data.rsvps[request.resource.data.rsvps.size() - 1].keys().hasAll(['familyName', 'attending', 'guestNames', 'additionalNotes', 'rsvpDate'])
+        && request.resource.data.rsvps[request.resource.data.rsvps.size() - 1].keys().hasAll(['familyName', 'attending', 'guestNames', 'additionalNotes', 'rsvpDate', 'numGuests'])
         // Validate familyName length (1-100 chars)
         && validStringLength(request.resource.data.rsvps[request.resource.data.rsvps.size() - 1].familyName, 1, 100)
         // Validate attending is boolean
         && request.resource.data.rsvps[request.resource.data.rsvps.size() - 1].attending is bool
+        // Validate numGuests is integer and within limits
+        && request.resource.data.rsvps[request.resource.data.rsvps.size() - 1].numGuests is int
+        && request.resource.data.rsvps[request.resource.data.rsvps.size() - 1].numGuests >= 0
+        && request.resource.data.rsvps[request.resource.data.rsvps.size() - 1].numGuests <= resource.data.maxGuests
         // Validate guestNames is an array
         && request.resource.data.rsvps[request.resource.data.rsvps.size() - 1].guestNames is list
-        // Validate guestNames doesn't exceed maxGuests
-        && request.resource.data.rsvps[request.resource.data.rsvps.size() - 1].guestNames.size() <= resource.data.maxGuests
+        // Validate guestNames doesn't exceed numGuests (consistency check)
+        && request.resource.data.rsvps[request.resource.data.rsvps.size() - 1].guestNames.size() <= request.resource.data.rsvps[request.resource.data.rsvps.size() - 1].numGuests
         // Validate additionalNotes length (0-500 chars)
         && validStringLength(request.resource.data.rsvps[request.resource.data.rsvps.size() - 1].get('additionalNotes', ''), 0, 500)
         // Ensure rsvpSubmitted is boolean
