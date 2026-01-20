@@ -546,7 +546,7 @@ async function loadInvitations() {
                         if (rsvps.length > 0) {
                             responseDetails = rsvps.map(r => {
                                 const familyName = r.familyName || 'Unknown';
-                                const guestCount = r.guestNames?.length || 0;
+                                const guestCount = r.numGuests || 0;
                                 const status = r.attending ? '✓' : '✗';
                                 const guestInfo = guestCount > 0 ? ` (${guestCount} guest${guestCount > 1 ? 's' : ''})` : '';
                                 return `${status} <strong>${escapeHtml(familyName)}</strong>${guestInfo}`;

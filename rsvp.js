@@ -306,6 +306,7 @@ rsvpForm.addEventListener('submit', async (e) => {
     const rsvpEntry = {
         familyName: familyName || 'Declined',
         attending: attending === 'yes',
+        numGuests: attending === 'yes' ? parseInt(numGuestsSelect.value) : 0,
         guestNames: guestNames,
         additionalNotes: additionalNotes,
         rsvpDate: new Date().toISOString()
