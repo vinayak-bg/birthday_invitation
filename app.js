@@ -25,7 +25,29 @@ function escapeHtml(unsafe) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }
-
+// Parse markdown for links and newlines only (secure, limited markdown)
+function parseMarkdown(text) {
+    if (!text) return '';
+    
+    // First escape HTML to prevent XSS
+    let safe = escapeHtml(text);
+    
+    // Convert markdown links [text](url) to HTML links
+    // This is safe because we've already escaped HTML
+    safe = safe.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, url) => {
+        // Basic URL validation - must start with http:// or https://
+        if (url.match(/^https?:\/\/.+/)) {
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
+        }
+        // If URL is invalid, return the original text
+        return match;
+    });
+    
+    // Convert newlines to <br>
+    safe = safe.replace(/\n/g, '<br>');
+    
+    return safe;
+}
 // Function to initialize Firebase
 function initializeFirebase() {
     if (!window.firebaseModules) {

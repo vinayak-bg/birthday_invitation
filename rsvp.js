@@ -23,6 +23,29 @@ function escapeHtml(unsafe) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }
+// Parse markdown for links and newlines only (secure, limited markdown)
+function parseMarkdown(text) {
+    if (!text) return '';
+    
+    // First escape HTML to prevent XSS
+    let safe = escapeHtml(text);
+    
+    // Convert markdown links [text](url) to HTML links
+    // This is safe because we've already escaped HTML
+    safe = safe.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, url) => {
+        // Basic URL validation - must start with http:// or https://
+        if (url.match(/^https?:\/\/.+/)) {
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
+        }
+        // If URL is invalid, return the original text
+        return match;
+    });
+    
+    // Convert newlines to <br>
+    safe = safe.replace(/\n/g, '<br>');
+    
+    return safe;
+}
 // Generate .ics calendar file for download
 function generateCalendarFile(eventData) {
     if (!eventData || !eventData.date) {
@@ -296,9 +319,9 @@ function displayInvitation() {
         }
         
         if (eventData.message) {
-            // Escape HTML but preserve newlines by converting to <br>
-            const escapedMessage = escapeHtml(eventData.message).replace(/\n/g, '<br>');
-            eventMessageEl.innerHTML = escapedMessage;
+            // Parse markdown (links and newlines) with XSS protection
+            const formattedMessage = parseMarkdown(eventData.message);
+            eventMessageEl.innerHTML = formattedMessage;
         }
         
         if (eventData.imageUrl) {
